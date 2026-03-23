@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SmartFace System{% endblock %}</title>
+    <title>{% block title %}Smart Attendance System{% endblock %}</title>
+    <meta name="description" content="AI-Powered Face Recognition for Modern Workforce Management">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Particles.js -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <!-- Icons fallback -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -17,102 +15,127 @@
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-brain" style="color: var(--secondary);"></i>
-                SmartFace
+            <div class="sidebar-logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved" style="color:#fff;"></i></div>
+                <div class="logo-text">
+                    <span class="logo-title">Smart Attendance</span>
+                    <span class="logo-sub">PRO</span>
+                </div>
             </div>
             
-            <div class="nav-section">Navigation</div>
+            {% if session.get('role') == 'admin' %}
+            <div class="nav-group-title">Main</div>
             <div class="nav-links">
-                {% if session.get('role') == 'admin' %}
-                    <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-                        <i class="fa-solid fa-border-all"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('manage_employees') }}" class="{% if request.endpoint == 'manage_employees' %}active{% endif %}">
-                        <i class="fa-solid fa-users"></i> Workforce
-                    </a>
-                    <a href="#">
-                        <i class="fa-solid fa-layer-group"></i> Attendance
-                    </a>
-                    <a href="#">
-                        <i class="fa-solid fa-chart-simple"></i> Analytics
-                    </a>
-                    <a href="#">
-                        <i class="fa-regular fa-bell"></i> Notifications <span style="margin-left:auto; background: var(--danger); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">3</span>
-                    </a>
-                {% else %}
-                    <a href="{{ url_for('employee_dashboard') }}" class="{% if request.endpoint == 'employee_dashboard' %}active{% endif %}">
-                        <i class="fa-regular fa-user"></i> My Profile
-                    </a>
-                {% endif %}
+                <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-objects-column"></i> Dashboard
+                </a>
+                <a href="{{ url_for('manage_employees') }}" class="{% if request.endpoint == 'manage_employees' %}active{% endif %}">
+                    <i class="fa-solid fa-users"></i> Employees
+                </a>
+                <a href="{{ url_for('attendance_history') }}" class="{% if request.endpoint == 'attendance_history' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i> Attendance
+                </a>
+                <a href="#"><i class="fa-solid fa-chart-mixed"></i> Analytics</a>
+                <a href="#"><i class="fa-solid fa-file-chart-column"></i> Reports</a>
             </div>
 
-            {% if session.get('role') == 'admin' %}
-            <div class="nav-section" style="margin-top: 1rem;">System</div>
+            <div class="nav-group-title">System</div>
             <div class="nav-links">
-                <a href="{{ url_for('scanner') }}" style="color: var(--text-muted);">
-                    <i class="fa-solid fa-expand"></i> AI Scanner
+                <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#"><i class="fa-solid fa-video"></i> Camera Management</a>
+                <a href="#"><i class="fa-solid fa-shield-check"></i> Security</a>
+            </div>
+
+            <div class="nav-group-title">Quick Actions</div>
+            <div class="nav-links">
+                <a href="{{ url_for('scanner') }}"><i class="fa-solid fa-face-viewfinder"></i> Scan Face</a>
+                <a href="#"><i class="fa-solid fa-pen-to-square"></i> Manual Entry</a>
+                <a href="#"><i class="fa-solid fa-download"></i> Export Data</a>
+            </div>
+
+            {% else %}
+            <div class="nav-group-title">Navigation</div>
+            <div class="nav-links">
+                <a href="{{ url_for('employee_dashboard') }}" class="{% if request.endpoint == 'employee_dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-user"></i> My Profile
                 </a>
-                <a href="#">
-                    <i class="fa-solid fa-gear"></i> Settings
-                </a>
-                <a href="{{ url_for('logout') }}" style="color: var(--danger); margin-top: 1rem;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                <a href="{{ url_for('scanner') }}">
+                    <i class="fa-solid fa-face-viewfinder"></i> Scan Face
                 </a>
             </div>
-            {% else %}
-             <div class="nav-links" style="margin-top: auto;">
-                 <a href="{{ url_for('logout') }}" style="color: var(--danger);">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                </a>
-             </div>
             {% endif %}
 
-            <div class="sidebar-profile">
-                <div class="avatar">
-                    {{ session.get('name', 'U')[0:2] | upper }}
+            <div style="flex:1;"></div>
+
+            <div class="sidebar-upgrade">
+                <div class="upgrade-icon"><i class="fa-solid fa-rocket"></i></div>
+                <div class="upgrade-text">
+                    <div class="upgrade-title">Upgrade to Pro</div>
+                    <div class="upgrade-sub">Unlock advanced features</div>
+                    <a href="#" class="upgrade-link">View Plans <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
                 <div class="profile-info">
                     <div class="profile-name">{{ session.get('name') }}</div>
-                    <div class="profile-role">{% if session.get('role') == 'admin' %}// root access{% else %}// employee{% endif %}</div>
+                    <div class="profile-role">{% if session.get('role') == 'admin' %}Admin{% else %}Employee{% endif %}</div>
                 </div>
+            </div>
+
+            <div class="nav-links" style="padding-bottom: 0.75rem;">
+                <a href="{{ url_for('logout') }}" style="color: var(--accent-rose); margin-top: 0.25rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </a>
             </div>
         </aside>
 
         <!-- MAIN CONTENT -->
         <main class="main-wrapper">
-            <div id="particles-base"></div>
-            
             <!-- TOPBAR -->
             <header class="topbar">
-                <div>
-                    <div class="page-subtitle">// {% if session.get('role') == 'admin' %}admin.dashboard - v2.4.1{% else %}employee.portal - v1.0.0{% endif %}</div>
-                    <h1 class="page-title">{% block page_title %}Overview{% endblock %}</h1>
+                <div class="topbar-left">
+                    <h1>{% block page_title %}Smart Attendance System{% endblock %}</h1>
+                    <p>{% block page_subtitle %}AI-Powered Face Recognition for Modern Workforce Management{% endblock %}</p>
                 </div>
-                <div class="topbar-actions">
-                    <div class="clock-widget" id="liveClock">00:00:00</div>
-                    <div class="icon-btn"><i class="fa-solid fa-rotate-right"></i></div>
-                    <div class="icon-btn"><i class="fa-regular fa-bell"></i></div>
-                    
-                    {% if session.get('role') == 'admin' %}
-                    <a href="{{ url_for('scanner') }}" class="btn-launch">
-                        <i class="fa-solid fa-circle-dot"></i> Launch AI Scanner
-                    </a>
-                    {% endif %}
+                <div class="topbar-right">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search employees, logs...">
+                    </div>
+                    <div class="topbar-user">
+                        <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
+                        <div class="topbar-user-info">
+                            <div class="topbar-user-name">{{ session.get('name') }}</div>
+                            <div class="topbar-user-role">{% if session.get('role') == 'admin' %}Admin{% else %}Employee{% endif %}</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size:0.6rem; color:var(--text-muted); margin-left:0.25rem;"></i>
+                    </div>
                 </div>
             </header>
-
-            {% block status_bar %}{% endblock %}
 
             <!-- PAGE INJECT -->
             <div class="page-content">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
+                        <div style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                         {% for category, message in messages %}
-                            <div class="badge badge-{{ category }}" style="margin-bottom: 1rem; display: inline-block;">
-                                {{ message }}
+                            {% if category == 'success' %}
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                                <i class="fa-solid fa-circle-check"></i> {{ message }}
                             </div>
+                            {% elif category == 'danger' %}
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
+                            </div>
+                            {% else %}
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); color:#06b6d4; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                                <i class="fa-solid fa-circle-info"></i> {{ message }}
+                            </div>
+                            {% endif %}
                         {% endfor %}
+                        </div>
                     {% endif %}
                 {% endwith %}
 
@@ -123,16 +146,27 @@
     {% else %}
     <!-- AUTH LAYOUT -->
     <div class="auth-wrapper">
-        <div id="particles-base"></div>
+        <div style="position:absolute; inset:0; z-index:0;">
+            <div style="position:absolute; top:-10%; left:-10%; width:40%; height:40%; background:rgba(16,185,129,0.06); border-radius:50%; filter:blur(100px);"></div>
+            <div style="position:absolute; bottom:-10%; right:-10%; width:40%; height:40%; background:rgba(6,182,212,0.06); border-radius:50%; filter:blur(100px);"></div>
+        </div>
+        
         <div class="auth-card">
-            
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
+                    <div style="margin-bottom:1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
                     {% for category, message in messages %}
-                        <div class="badge badge-{{ category }}" style="margin-bottom: 1rem; display: block; text-align: center;">
-                            {{ message }}
+                        {% if category == 'success' %}
+                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.6rem 1rem; border-radius:10px; font-size:0.8rem; font-weight:600;">
+                            <i class="fa-solid fa-check"></i> {{ message }}
                         </div>
+                        {% else %}
+                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.6rem 1rem; border-radius:10px; font-size:0.8rem; font-weight:600;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> {{ message }}
+                        </div>
+                        {% endif %}
                     {% endfor %}
+                    </div>
                 {% endif %}
             {% endwith %}
 
@@ -143,29 +177,11 @@
 
     {% block scripts %}{% endblock %}
     <script>
-        // particles
-        if(typeof particlesJS !== 'undefined') {
-            particlesJS("particles-base", {
-                "particles": {
-                    "number": { "value": 30, "density": { "enable": true, "value_area": 800 } },
-                    "color": { "value": "#38bdf8" },
-                    "shape": { "type": "circle" },
-                    "opacity": { "value": 0.15, "random": false },
-                    "size": { "value": 3, "random": true },
-                    "line_linked": { "enable": true, "distance": 150, "color": "#38bdf8", "opacity": 0.05, "width": 1 },
-                    "move": { "enable": true, "speed": 1, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false }
-                },
-                "interactivity": { "detect_on": "window", "events": { "onhover": { "enable": true, "mode": "grab" }, "resize": true } },
-                "retina_detect": true
-            });
-        }
-        
-        // live clock
+        // Live clock
         function updateClock() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour12: false });
             const clockEl = document.getElementById('liveClock');
-            if(clockEl) clockEl.innerText = timeString;
+            if(clockEl) clockEl.innerText = now.toLocaleTimeString('en-US', { hour12: false });
         }
         setInterval(updateClock, 1000);
         updateClock();

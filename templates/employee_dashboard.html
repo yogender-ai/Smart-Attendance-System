@@ -1,126 +1,261 @@
 {% extends 'base.html' %}
-{% block title %}My Profile - SmartFace{% endblock %}
+{% block title %}My Profile - Smart Attendance Pro{% endblock %}
 {% block page_title %}Employee Portal{% endblock %}
+{% block page_subtitle %}Your personal attendance dashboard{% endblock %}
 
 {% block content %}
-<div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
-    <!-- Profile Card -->
-    <div class="stat-card" style="padding: 2.5rem;">
-        <h3 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem;">Identity Profile</h3>
-        <p style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #fff;"><strong>Name:</strong> {{ user['name'] }}</p>
-        <p style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #fff;"><strong>ID:</strong> <span style="font-family: monospace; color: var(--primary);">{{ user['employee_id'] }}</span></p>
-        <p style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #fff;"><strong>Email:</strong> {{ user['email'] }}</p>
-        <p style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #fff;"><strong>Dept:</strong> {{ user['department'] }}</p>
-        
-        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-            <h4 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">AI Status</h4>
+<!-- Stats Row -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:1.5rem;">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon emerald"><i class="fa-solid fa-calendar-check"></i></div>
+            <span class="stat-title">Total Days Present</span>
+        </div>
+        <div class="stat-value">{{ total_days }}</div>
+        <div class="stat-trend"><span class="trend-badge up"><i class="fa-solid fa-chart-line"></i></span> All time</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon gold"><i class="fa-solid fa-clock"></i></div>
+            <span class="stat-title">Late Arrivals</span>
+        </div>
+        <div class="stat-value">{{ late_days }}</div>
+        <div class="stat-trend"><span class="trend-badge {% if late_days > 3 %}down{% else %}up{% endif %}">{{ late_days }}</span> total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon {% if user['face_registered'] %}emerald{% else %}gold{% endif %}">
+                <i class="fa-solid fa-{% if user['face_registered'] %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
+            </div>
+            <span class="stat-title">Biometric Status</span>
+        </div>
+        <div class="stat-value" style="font-size:1.2rem;">{% if user['face_registered'] %}Registered{% else %}Pending{% endif %}</div>
+        <div class="stat-trend">
             {% if user['face_registered'] %}
-                <div class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1rem;"><i class="fa-solid fa-check-circle"></i> Facial Geometric Model Trained</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">You are cleared to use the Kiosk Scanner.</p>
+            <span class="trend-badge up">Active</span> Scanner ready
             {% else %}
-                <div class="badge badge-danger" style="font-size: 1rem; padding: 0.5rem 1rem;"><i class="fa-solid fa-triangle-exclamation"></i> Model Registration Pending</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">Action Required: Please register your face below.</p>
-                <button class="btn-launch mt-3" onclick="document.getElementById('faceModal').style.display='block'">
-                    <i class="fa-solid fa-camera"></i> Initialize Face Registration
-                </button>
+            <span class="trend-badge neutral">Action Needed</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Identity Card -->
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-id-card"></i> Identity Profile</span>
+        </div>
+        <div class="glass-card-body">
+            <div style="display:flex; align-items:center; gap:1.5rem; margin-bottom:1.5rem;">
+                <div style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; border:3px solid rgba(16,185,129,0.3); box-shadow:0 0 20px var(--accent-emerald-glow);">
+                    {{ user['name'][0:2] | upper }}
+                </div>
+                <div>
+                    <div style="font-size:1.2rem; font-weight:700; color:var(--text-primary);">{{ user['name'] }}</div>
+                    <div style="font-size:0.78rem; color:var(--accent-cyan); font-family:monospace; font-weight:600;">{{ user['employee_id'] }}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">{{ user['department'] }}</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:0.75rem;">
+                    <div style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Email</div>
+                    <div style="font-size:0.82rem; color:var(--text-primary); font-weight:500;">{{ user['email'] }}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:0.75rem;">
+                    <div style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Phone</div>
+                    <div style="font-size:0.82rem; color:var(--text-primary); font-weight:500;">{{ user['phone'] or 'N/A' }}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:0.75rem;">
+                    <div style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Department</div>
+                    <div style="font-size:0.82rem; color:var(--text-primary); font-weight:500;">{{ user['department'] }}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:0.75rem;">
+                    <div style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Face Scan</div>
+                    <div style="font-size:0.82rem; font-weight:500;">
+                        {% if user['face_registered'] %}
+                        <span style="color:var(--accent-emerald);"><i class="fa-solid fa-circle-check"></i> Trained</span>
+                        {% else %}
+                        <span style="color:var(--accent-gold);"><i class="fa-solid fa-triangle-exclamation"></i> Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if not user['face_registered'] %}
+            <button onclick="document.getElementById('faceModal').style.display='flex'" style="margin-top:1rem; width:100%; padding:0.75rem; background:var(--accent-emerald); color:#000; border:none; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:all 0.2s;">
+                <i class="fa-solid fa-camera"></i> Register Biometrics
+            </button>
             {% endif %}
         </div>
     </div>
 
     <!-- Attendance History -->
-    <div class="table-panel" style="margin-top: 0; padding: 2.5rem;">
-        <h3 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem;">Recent Attendance Timeline</h3>
-        <table style="width: 100%;">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Check-in Time</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in attendance %}
-                <tr>
-                    <td style="font-family: monospace; color: #fff;">{{ record['date'] }}</td>
-                    <td style="font-family: monospace; color: var(--text-muted);">{{ record['time'] }}</td>
-                    <td><span class="badge badge-success">{{ record['status'] }}</span></td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance logs found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Attendance</span>
+        </div>
+        <div class="glass-card-body" style="padding:0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Check-in Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in history %}
+                    <tr>
+                        <td style="font-weight:600; color:var(--text-primary); font-size:0.82rem;">{{ record['date'] }}</td>
+                        <td style="font-family:monospace; font-size:0.82rem;">{{ record['time'] }}</td>
+                        <td>
+                            <span class="status-badge {% if record['status'] == 'Late' %}late{% elif record['status'] == 'Absent' %}absent{% else %}checked-in{% endif %}">
+                                {{ record['status'] }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align:center; padding:2rem; color:var(--text-muted); font-style:italic;">No attendance records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Modal for Face Registration -->
-<div id="faceModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 1000;">
-    <div class="modal-content" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); border: 1px solid var(--border); padding: 3rem; border-radius: 24px; min-width: 500px; text-align: center;">
-        <h2 style="color: #fff; margin-bottom: 1rem;">Facial Registration</h2>
-        <p style="color: var(--text-muted); margin-bottom: 2rem;">Please look directly at the camera in a well-lit environment.</p>
+<!-- Face Registration Modal -->
+<div id="faceModal" style="position:fixed; inset:0; background:rgba(6,9,17,0.92); backdrop-filter:blur(20px); z-index:100; display:none; align-items:center; justify-content:center; animation:fadeIn 0.3s;">
+    <div style="background:var(--bg-sidebar); border:1px solid var(--border); padding:2rem; border-radius:20px; width:100%; max-width:580px; text-center;">
         
-        <div style="position: relative; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);">
-            <video id="videoElement" autoplay muted playsinline style="width: 100%; transform: scaleX(-1);"></video>
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 250px; border: 2px dashed rgba(56, 189, 248, 0.5); border-radius: 50%; box-shadow: 0 0 0 999px rgba(0,0,0,0.7);"></div>
+        <h2 style="font-size:1.5rem; font-weight:800; color:var(--text-primary); margin-bottom:0.4rem;">Facial Registration</h2>
+        <p style="color:var(--text-muted); margin-bottom:1.5rem; font-size:0.85rem;">Look directly at the camera. Registration is automatic.</p>
+        
+        <div style="position:relative; width:100%; aspect-ratio:16/10; border-radius:16px; overflow:hidden; border:2px solid rgba(16,185,129,0.2); background:#000;">
+            <video id="videoElement" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+            <div style="position:absolute; inset:0; background:rgba(0,0,0,0.15);"></div>
+            
+            <!-- Target Ring -->
+            <div id="targetRing" style="position:absolute; width:160px; height:160px; border-radius:50%; border:2px dashed rgba(16,185,129,0.5); top:50%; left:50%; transform:translate(-50%,-50%); transition:all 0.3s; animation:glow-ring 3s ease-in-out infinite;"></div>
+            
+            <!-- Processing Overlay -->
+            <div id="processingOverlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(5px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:20;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size:2rem; color:var(--accent-cyan); margin-bottom:0.75rem;"></i>
+                <p style="color:#fff; font-weight:700; font-size:0.85rem; letter-spacing:1px;">Generating Model...</p>
+            </div>
+            
+            <!-- Success Overlay -->
+            <div id="regSuccessOverlay" style="position:absolute; inset:0; background:rgba(16,185,129,0.9); backdrop-filter:blur(8px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:30;">
+                <i class="fa-solid fa-check" style="font-size:2.5rem; color:#fff; margin-bottom:0.75rem;"></i>
+                <p style="color:#fff; font-weight:700; font-size:1.1rem;">Identity Locked</p>
+            </div>
         </div>
 
-        <button id="captureBtn" class="btn-launch" style="margin: 2rem auto 0 auto; width: 100%; justify-content: center;"><i class="fa-solid fa-camera"></i> Capture & Train Model</button>
-        <button type="button" onclick="document.getElementById('faceModal').style.display='none'" style="background: transparent; color: var(--danger); border: none; margin-top: 1.5rem; cursor: pointer; font-weight: 600;">Cancel</button>
-        <p id="regStatus" style="margin-top: 1rem; font-weight: 600;"></p>
+        <p id="regInstruction" style="color:var(--accent-cyan); font-weight:600; font-size:0.85rem; margin-top:1rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+            <i class="fa-solid fa-camera" style="animation:pulse-glow 1.5s infinite;"></i> Auto-capture active. Hold still.
+        </p>
+        
+        <button type="button" onclick="closeModal()" style="margin-top:1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--text-secondary); padding:0.5rem 1.5rem; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.82rem; font-family:inherit;">
+            Cancel
+        </button>
     </div>
 </div>
 
 <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
 <script>
-    document.getElementById("faceModal").addEventListener("click", function(e) {
-        if(e.target === this) this.style.display = "none";
-    });
+    let streamActive = false;
+    let autoCaptureInterval = null;
+    let stableFrames = 0;
+    
+    function closeModal() {
+        document.getElementById('faceModal').style.display = 'none';
+        if (autoCaptureInterval) clearInterval(autoCaptureInterval);
+        stopCamera();
+        streamActive = false;
+    }
 
     const modalObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            if (mutation.target.style.display === 'block') {
+            if (mutation.target.style.display === 'flex' && !streamActive) {
                 startCamera('videoElement');
+                streamActive = true;
+                startAutoCaptureLogic();
             }
         });
     });
+    
     const faceModal = document.getElementById('faceModal');
-    if(faceModal) modalObserver.observe(faceModal, { attributes: true, attributeFilter: ['style'] });
+    if (faceModal) modalObserver.observe(faceModal, { attributes: true, attributeFilter: ['style'] });
 
-    document.getElementById("captureBtn").addEventListener("click", async () => {
-        const btn = document.getElementById("captureBtn");
-        const statusEl = document.getElementById("regStatus");
+    function startAutoCaptureLogic() {
+        const instruction = document.getElementById("regInstruction");
+        const processingOverlay = document.getElementById("processingOverlay");
+        const successOverlay = document.getElementById("regSuccessOverlay");
+        const targetRing = document.getElementById("targetRing");
         
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing Geometry...';
-        btn.disabled = true;
+        stableFrames = 0;
+        targetRing.style.display = 'block';
+        targetRing.style.borderColor = 'rgba(16,185,129,0.5)';
+        instruction.innerHTML = '<i class="fa-solid fa-camera"></i> Auto-capture active. Hold still.';
+        instruction.style.color = 'var(--accent-cyan)';
+        processingOverlay.style.display = 'none';
+        successOverlay.style.display = 'none';
         
-        const base64Img = captureFrame("videoElement");
+        if (autoCaptureInterval) clearInterval(autoCaptureInterval);
         
-        try {
-            const response = await fetch("{{ url_for('api_register_face') }}", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: base64Img })
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                statusEl.innerText = "Target Locked. Model Trained Successfully!";
-                statusEl.style.color = "var(--success)";
-                setTimeout(() => window.location.reload(), 2000);
-            } else {
-                statusEl.innerText = "Error: " + result.msg;
-                statusEl.style.color = "var(--danger)";
-                btn.innerHTML = '<i class="fa-solid fa-camera"></i> Retry Capture';
-                btn.disabled = false;
-            }
-        } catch(err) {
-            statusEl.innerText = "Network Error.";
-            statusEl.style.color = "var(--danger)";
-            btn.innerHTML = '<i class="fa-solid fa-camera"></i> Retry Capture';
-            btn.disabled = false;
-        }
-    });
+        setTimeout(() => {
+            autoCaptureInterval = setInterval(async () => {
+                const base64Img = captureFrame("videoElement");
+                stableFrames++;
+                
+                if (stableFrames > 2) { 
+                    clearInterval(autoCaptureInterval);
+                    autoCaptureInterval = null;
+                    
+                    targetRing.style.display = 'none';
+                    processingOverlay.style.display = 'flex';
+                    instruction.innerHTML = '<i class="fa-solid fa-brain" style="color:var(--accent-cyan);"></i> AI analyzing geometric patterns...';
+                    
+                    try {
+                        const response = await fetch("{{ url_for('api_register_face') }}", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image: base64Img })
+                        });
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            processingOverlay.style.display = 'none';
+                            successOverlay.style.display = 'flex';
+                            instruction.innerText = "Model Trained Successfully!";
+                            instruction.style.color = 'var(--accent-emerald)';
+                            setTimeout(() => window.location.reload(), 2000);
+                        } else {
+                            processingOverlay.style.display = 'none';
+                            targetRing.style.display = 'block';
+                            targetRing.style.borderColor = 'rgba(245,158,11,0.6)';
+                            instruction.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Adjust lighting. Retrying...';
+                            instruction.style.color = 'var(--accent-gold)';
+                            stableFrames = 0;
+                            startAutoCaptureLogic(); 
+                        }
+                    } catch(err) {
+                        processingOverlay.style.display = 'none';
+                        instruction.innerText = "Network error. Retrying...";
+                        instruction.style.color = 'var(--accent-rose)';
+                        stableFrames = 0;
+                        startAutoCaptureLogic(); 
+                    }
+                } else if (stableFrames == 2) {
+                    targetRing.style.borderColor = 'rgba(16,185,129,0.8)';
+                    targetRing.style.boxShadow = '0 0 30px rgba(16,185,129,0.5), inset 0 0 30px rgba(16,185,129,0.3)';
+                    instruction.innerHTML = '<i class="fa-solid fa-lock" style="color:var(--accent-cyan);"></i> Locking Target...';
+                }
+            }, 1000);
+        }, 2000);
+    }
 </script>
 {% endblock %}

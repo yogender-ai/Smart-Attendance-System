@@ -2,46 +2,76 @@
 {% block title %}Register - SmartFace{% endblock %}
 
 {% block auth_content %}
-<div style="text-align: center; margin-bottom: 2rem;">
-    <h1 style="font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">Create Profile</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem;">Join the SmartFace attendance grid.</p>
+<div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-6 shadow-lg">
+        <i class="fa-solid fa-address-card text-3xl text-white"></i>
+    </div>
+    <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">Create Profile</h1>
+    <p class="text-slate-400 font-medium">Join the SmartFace attendance grid.</p>
 </div>
 
-<form method="POST">
-    <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Employee ID</label>
-        <input type="text" name="employee_id" class="form-control" required placeholder="EMP001">
-    </div>
-    <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Full Legal Name</label>
-        <input type="text" name="name" class="form-control" required placeholder="John Doe">
-    </div>
-    <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Work Email</label>
-        <input type="email" name="email" class="form-control" required placeholder="john@domain.com">
-    </div>
-    <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Phone Number</label>
-        <input type="text" name="phone" class="form-control" required placeholder="+1 234 567 8900">
-    </div>
-    <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Department</label>
-        <select name="department" class="form-control" style="appearance: none;">
-            <option value="IT" style="color: #000;">Engineering / IT</option>
-            <option value="HR" style="color: #000;">Human Resources</option>
-            <option value="Sales" style="color: #000;">Sales</option>
-            <option value="Operations" style="color: #000;">Operations</option>
-        </select>
-    </div>
-    <div style="margin-bottom: 2rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Secure Password</label>
-        <input type="password" name="password" class="form-control" required placeholder="••••••••">
+<form method="POST" class="grid grid-cols-2 gap-5">
+    <div class="col-span-1">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Employee ID</label>
+        <div class="relative group">
+            <i class="fa-solid fa-id-badge absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors"></i>
+            <input type="text" name="employee_id" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium" required placeholder="EMP001">
+        </div>
     </div>
     
-    <button type="submit" class="btn-primary">Initialize Profile</button>
+    <div class="col-span-1">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Legal Name</label>
+        <div class="relative group">
+            <i class="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors"></i>
+            <input type="text" name="name" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium" required placeholder="John Doe">
+        </div>
+    </div>
+    
+    <div class="col-span-2">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Work Email</label>
+        <div class="relative group">
+            <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors"></i>
+            <input type="email" name="email" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium" required placeholder="john@domain.com">
+        </div>
+    </div>
+    
+    <div class="col-span-1">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Phone</label>
+        <div class="relative group">
+            <i class="fa-solid fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors"></i>
+            <input type="text" name="phone" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium" required placeholder="+1 234...">
+        </div>
+    </div>
+    
+    <div class="col-span-1">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Department</label>
+        <div class="relative group">
+            <i class="fa-solid fa-briefcase absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors z-10"></i>
+            <select name="department" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium appearance-none">
+                <option value="IT" class="text-black">Engineering / IT</option>
+                <option value="HR" class="text-black">Human Resources</option>
+                <option value="Sales" class="text-black">Sales</option>
+                <option value="Operations" class="text-black">Operations</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="col-span-2">
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Secure Password</label>
+        <div class="relative group">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors"></i>
+            <input type="password" name="password" class="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all font-medium" required placeholder="••••••••">
+        </div>
+    </div>
+    
+    <div class="col-span-2 mt-2">
+        <button type="submit" class="w-full bg-white text-black font-bold text-lg py-4 rounded-xl hover:scale-[1.02] transition-all hover:bg-slate-100 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_10px_30px_rgba(255,255,255,0.25)] flex justify-center items-center gap-2">
+            Initialize Profile
+        </button>
+    </div>
 </form>
 
-<div style="text-align: center; margin-top: 1.5rem;">
-    <a href="{{ url_for('login') }}" style="color: var(--primary); font-size: 0.9rem; text-decoration: none; font-weight: 600;">Already registered? Login Here</a>
+<div class="text-center mt-6">
+    <a href="{{ url_for('login') }}" class="text-sm text-slate-400 hover:text-white font-medium transition-colors">Already registered? <span class="text-[#00f0ff]">Login Here</span></a>
 </div>
 {% endblock %}

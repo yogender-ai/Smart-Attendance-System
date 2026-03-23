@@ -1,26 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}Login - SmartFace{% endblock %}
+{% block title %}Employee Login - SmartFace{% endblock %}
 
 {% block auth_content %}
-<div style="text-align: center; margin-bottom: 2rem;">
-    <h1 style="font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">Welcome Back</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem;">Sign in to your intelligent face profile.</p>
+<div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#00f0ff]/10 border border-[#00f0ff]/20 mb-6 shadow-[0_0_30px_rgba(0,240,255,0.15)]">
+        <i class="fa-regular fa-user text-3xl text-[#00f0ff]"></i>
+    </div>
+    <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">Employee Portal</h1>
+    <p class="text-slate-400 font-medium">Verify your credentials to access the grid.</p>
 </div>
 
-<form method="POST">
-    <div style="margin-bottom: 1.5rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Work Email</label>
-        <input type="email" name="email" class="form-control" required placeholder="corporate@domain.com">
-    </div>
-    <div style="margin-bottom: 2rem;">
-        <label style="display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem;">Password</label>
-        <input type="password" name="password" class="form-control" required placeholder="••••••••">
+<form method="POST" class="space-y-5">
+    <div>
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Work Email</label>
+        <div class="relative group">
+            <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#00f0ff] transition-colors"></i>
+            <input type="email" name="email" class="w-full pl-12 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]/50 focus:ring-1 focus:ring-[#00f0ff]/50 transition-all font-medium" required placeholder="name@domain.com">
+        </div>
     </div>
     
-    <button type="submit" class="btn-primary">Access Security Portal</button>
+    <div>
+        <label class="block text-sm font-semibold text-slate-300 mb-2">Secure Password</label>
+        <div class="relative group">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#00f0ff] transition-colors"></i>
+            <input type="password" name="password" class="w-full pl-12 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]/50 focus:ring-1 focus:ring-[#00f0ff]/50 transition-all font-medium" required placeholder="••••••••">
+        </div>
+    </div>
+    
+    <button type="submit" class="w-full bg-white text-black font-bold text-lg py-4 rounded-xl mt-4 hover:scale-[1.02] transition-all hover:bg-slate-100 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_10px_30px_rgba(255,255,255,0.25)] flex justify-center items-center gap-2">
+        Authenticate Identity <i class="fa-solid fa-arrow-right"></i>
+    </button>
 </form>
 
-<div style="text-align: center; margin-top: 2rem;">
-    <a href="{{ url_for('register') }}" style="color: var(--primary); font-size: 0.9rem; text-decoration: none; font-weight: 600;">Don't have an ID? Register Here</a>
+<div class="text-center mt-8 pt-6 border-t border-white/10">
+    <p class="text-slate-400 text-sm">New personnel? <a href="{{ url_for('register') }}" class="text-[#00f0ff] font-semibold hover:text-white transition-colors">Initialize Profile</a></p>
+    <div class="mt-4">
+        <a href="{{ url_for('admin_login') }}" class="text-xs text-slate-500 hover:text-slate-300 font-medium tracking-wide uppercase"><i class="fa-solid fa-shield-halved"></i> Switch to Admin Gateway</a>
+    </div>
 </div>
 {% endblock %}

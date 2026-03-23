@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance Pro - AI-Powered Workforce Management</title>
+    <meta name="description" content="Next-generation attendance management powered by AI face recognition with anti-spoofing detection.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+</head>
+<body style="overflow-y:auto;">
+    <div id="particles-landing" style="position:fixed; inset:0; z-index:0; pointer-events:none;"></div>
+    
+    <div class="landing-wrapper" style="height:auto; min-height:100vh;">
+        <nav class="landing-nav">
+            <a href="#" class="landing-logo">
+                <i class="fa-solid fa-shield-halved" style="color:var(--accent-emerald);"></i> Smart Attendance
+            </a>
+            <div class="landing-links">
+                <a href="{{ url_for('login') }}" class="landing-link"><i class="fa-regular fa-user"></i> Employee Portal</a>
+                <a href="{{ url_for('admin_login') }}" class="landing-link"><i class="fa-solid fa-shield-halved"></i> Admin Access</a>
+                <a href="{{ url_for('register') }}" class="btn-outline" style="padding:0.5rem 1.25rem; font-size:0.82rem; border-radius:8px;">Register</a>
+            </div>
+        </nav>
+
+        <main class="landing-hero" style="padding-top:4rem; padding-bottom:4rem;">
+            <div class="hero-badge">🛡️ AI Biometric Security</div>
+            <h1 class="hero-title">Frictionless <span>Attendance</span><br>for Modern Workforce</h1>
+            <p class="hero-subtitle">Step up to the scanner. Our AI-driven liveness detection with 5-layer anti-spoofing authorizes your presence in milliseconds. No badges, no delays, full security.</p>
+            <div class="hero-actions">
+                <a href="{{ url_for('scanner') }}" class="btn-glow">
+                    <i class="fa-solid fa-face-viewfinder"></i> Quick Scan Attendance
+                </a>
+                <a href="{{ url_for('register') }}" class="btn-outline">
+                    New Employee Setup
+                </a>
+            </div>
+        </main>
+
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.1s;">
+                <div class="feature-icon" style="background:rgba(16,185,129,0.1); color:var(--accent-emerald);">
+                    <i class="fa-solid fa-face-viewfinder"></i>
+                </div>
+                <h3>Face Recognition</h3>
+                <p>LBPH-based geometric face matching with 97%+ accuracy. Recognizes faces in under 200ms.</p>
+            </div>
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.2s;">
+                <div class="feature-icon" style="background:rgba(244,63,94,0.1); color:var(--accent-rose);">
+                    <i class="fa-solid fa-shield-check"></i>
+                </div>
+                <h3>5-Layer Anti-Spoofing</h3>
+                <p>Texture analysis, edge density, color distribution, face consistency, and blink detection prevent all cheating attempts.</p>
+            </div>
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.3s;">
+                <div class="feature-icon" style="background:rgba(6,182,212,0.1); color:var(--accent-cyan);">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3>Real-Time Processing</h3>
+                <p>Instant attendance verification with live camera feed, WebSocket-backed updates, and zero wait time.</p>
+            </div>
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.4s;">
+                <div class="feature-icon" style="background:rgba(139,92,246,0.1); color:var(--accent-purple);">
+                    <i class="fa-solid fa-eye"></i>
+                </div>
+                <h3>Liveness Detection</h3>
+                <p>Blink-based verification ensures only live, real humans can mark attendance. Photos and screens are rejected.</p>
+            </div>
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.5s;">
+                <div class="feature-icon" style="background:rgba(245,158,11,0.1); color:var(--accent-gold);">
+                    <i class="fa-solid fa-chart-mixed"></i>
+                </div>
+                <h3>Smart Analytics</h3>
+                <p>Track attendance patterns, late arrivals, department-wise statistics, and generate automated reports.</p>
+            </div>
+            <div class="feature-card" style="animation:slideUpFade 0.5s ease-out backwards; animation-delay:0.6s;">
+                <div class="feature-icon" style="background:rgba(16,185,129,0.1); color:var(--accent-emerald);">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3>Privacy First</h3>
+                <p>No photos stored. Only mathematical embeddings are saved. Fully GDPR-compliant by design.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        particlesJS("particles-landing", {
+            "particles": {
+                "number": { "value": 50, "density": { "enable": true, "value_area": 900 } },
+                "color": { "value": "#10b981" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.15, "random": true },
+                "size": { "value": 2.5, "random": true },
+                "line_linked": { "enable": true, "distance": 140, "color": "#10b981", "opacity": 0.08, "width": 1 },
+                "move": { "enable": true, "speed": 0.8, "direction": "none", "random": true, "straight": false, "out_mode": "out" }
+            },
+            "interactivity": { 
+                "detect_on": "window", 
+                "events": { "onhover": { "enable": true, "mode": "grab" }, "resize": true },
+                "modes": { "grab": { "distance": 180, "line_linked": { "opacity": 0.25 } } }
+            },
+            "retina_detect": true
+        });
+    </script>
+</body>
+</html>
