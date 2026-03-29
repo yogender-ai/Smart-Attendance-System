@@ -7,3 +7,4 @@ __pycache__/
 *.jpeg
 *.png
 face_data/*.jpg
+face_data/trainer.yml
