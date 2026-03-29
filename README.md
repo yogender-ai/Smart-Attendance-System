@@ -1,16 +1,6 @@
 <div align="center">
 
-<svg width="600" height="100" viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .text { font: bold 45px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: none; stroke-width: 1.5; stroke: #00d2ff; stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 4s ease-in-out forwards, glow 2s ease-in-out infinite alternate; }
-    @keyframes draw { to { stroke-dashoffset: 0; } }
-    @keyframes glow { from { filter: drop-shadow(0 0 2px #00d2ff); } to { filter: drop-shadow(0 0 15px #00d2ff); } }
-    .subtitle { font: 18px 'Segoe UI', sans-serif; fill: #888; opacity: 0; animation: fadeIn 2s 2s forwards; }
-    @keyframes fadeIn { to { opacity: 1; } }
-  </style>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="text">SMART ATTENDANCE</text>
-  <text x="50%" y="85%" text-anchor="middle" class="subtitle">PREMIUM BIOMETRIC ECOSYSTEM</text>
-</svg>
+<img src="./static/readme/header.svg" width="600" alt="Smart Attendance Header" />
 
 <br/>
 
@@ -34,7 +24,7 @@
 
 ---
 
-## 🔱 Elite Features
+## Elite Features
 
 | | |
 | :--- | :--- |
@@ -45,7 +35,7 @@
 
 ---
 
-## 🔥 Logic Architecture
+## Logic Architecture
 
 ```mermaid
 graph LR
@@ -60,7 +50,7 @@ graph LR
 
 ---
 
-## 🛠️ Deployment
+## Deployment
 
 ```bash
 # Clone
@@ -78,14 +68,14 @@ python app.py
 
 ---
 
-## 📸 Interface Preview
+## Interface Preview
 
 ![Dashboard Preview](./static/readme/dashboard_mockup.png)
 *High-end SaaS Management Dashboard.*
 
 ---
 
-## 🗺️ Vision Roadmap
+## Vision Roadmap
 
 - **Thermal Integration**: High-accuracy temperature scanning during check-in.
 - **Decentralized Sync**: Encrypted peer-to-peer data synchronization.

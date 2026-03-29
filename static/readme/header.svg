@@ -1,0 +1,33 @@
+<svg width="600" height="100" viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&amp;display=swap');
+    .text { 
+      font-family: 'Inter', sans-serif; 
+      font-weight: 700;
+      font-size: 45px; 
+      fill: none; 
+      stroke-width: 1.5; 
+      stroke: #00d2ff; 
+      stroke-dasharray: 600; 
+      stroke-dashoffset: 600; 
+      animation: draw 3s ease-in-out forwards, glow 2s ease-in-out infinite alternate; 
+    }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes glow { 
+      from { filter: drop-shadow(0 0 2px #00d2ff); } 
+      to { filter: drop-shadow(0 0 10px #00d2ff); } 
+    }
+    .subtitle { 
+      font-family: 'Inter', sans-serif;
+      font-size: 16px; 
+      fill: #a0a0a0; 
+      opacity: 0; 
+      animation: fadeIn 1.5s 2s forwards; 
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    @keyframes fadeIn { to { opacity: 1; } }
+  </style>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="text">SMART ATTENDANCE</text>
+  <text x="50%" y="85%" text-anchor="middle" class="subtitle">Premium Biometric Ecosystem</text>
+</svg>
