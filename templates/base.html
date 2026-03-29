@@ -7,19 +7,23 @@
     <meta name="description" content="AI-Powered Face Recognition for Modern Workforce Management">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
     
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     {% if session.get('user_id') %}
     <div class="app-container">
         <!-- SIDEBAR -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo">
                 <div class="logo-icon"><i class="fa-solid fa-shield-halved" style="color:#fff;"></i></div>
                 <div class="logo-text">
                     <span class="logo-title">Smart Attendance</span>
-                    <span class="logo-sub">PRO</span>
+                    <span class="logo-sub">AI Engine</span>
                 </div>
             </div>
             
@@ -35,52 +39,45 @@
                 <a href="{{ url_for('attendance_history') }}" class="{% if request.endpoint == 'attendance_history' %}active{% endif %}">
                     <i class="fa-solid fa-calendar-check"></i> Attendance
                 </a>
-                <a href="#"><i class="fa-solid fa-chart-mixed"></i> Analytics</a>
-                <a href="#"><i class="fa-solid fa-file-chart-column"></i> Reports</a>
+                <a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i> Analytics
+                </a>
             </div>
 
             <div class="nav-group-title">System</div>
             <div class="nav-links">
-                <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
-                <a href="#"><i class="fa-solid fa-video"></i> Camera Management</a>
-                <a href="#"><i class="fa-solid fa-shield-check"></i> Security</a>
+                <a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </a>
+                <a href="{{ url_for('export_csv') }}" title="Download attendance CSV">
+                    <i class="fa-solid fa-download"></i> Export Data
+                </a>
             </div>
 
             <div class="nav-group-title">Quick Actions</div>
             <div class="nav-links">
-                <a href="{{ url_for('scanner') }}"><i class="fa-solid fa-face-viewfinder"></i> Scan Face</a>
-                <a href="#"><i class="fa-solid fa-pen-to-square"></i> Manual Entry</a>
-                <a href="#"><i class="fa-solid fa-download"></i> Export Data</a>
+                <a href="{{ url_for('scanner') }}"><i class="fa-solid fa-camera"></i> Scan Face</a>
             </div>
 
             {% else %}
             <div class="nav-group-title">Navigation</div>
             <div class="nav-links">
                 <a href="{{ url_for('employee_dashboard') }}" class="{% if request.endpoint == 'employee_dashboard' %}active{% endif %}">
-                    <i class="fa-solid fa-user"></i> My Profile
+                    <i class="fa-solid fa-gauge-high"></i> Dashboard
                 </a>
                 <a href="{{ url_for('scanner') }}">
-                    <i class="fa-solid fa-face-viewfinder"></i> Scan Face
+                    <i class="fa-solid fa-camera"></i> Scan Face
                 </a>
             </div>
             {% endif %}
 
             <div style="flex:1;"></div>
 
-            <div class="sidebar-upgrade">
-                <div class="upgrade-icon"><i class="fa-solid fa-rocket"></i></div>
-                <div class="upgrade-text">
-                    <div class="upgrade-title">Upgrade to Pro</div>
-                    <div class="upgrade-sub">Unlock advanced features</div>
-                    <a href="#" class="upgrade-link">View Plans <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-            </div>
-
             <div class="sidebar-profile">
                 <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
                 <div class="profile-info">
                     <div class="profile-name">{{ session.get('name') }}</div>
-                    <div class="profile-role">{% if session.get('role') == 'admin' %}Admin{% else %}Employee{% endif %}</div>
+                    <div class="profile-role">{% if session.get('role') == 'admin' %}Administrator{% else %}Employee{% endif %}</div>
                 </div>
             </div>
 
@@ -95,22 +92,23 @@
         <main class="main-wrapper">
             <!-- TOPBAR -->
             <header class="topbar">
-                <div class="topbar-left">
-                    <h1>{% block page_title %}Smart Attendance System{% endblock %}</h1>
-                    <p>{% block page_subtitle %}AI-Powered Face Recognition for Modern Workforce Management{% endblock %}</p>
+                <div class="topbar-left" style="display:flex; align-items:center; gap:0.75rem;">
+                    <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>{% block page_title %}Smart Attendance System{% endblock %}</h1>
+                        <p>{% block page_subtitle %}AI-Powered Face Recognition{% endblock %}</p>
+                    </div>
                 </div>
                 <div class="topbar-right">
-                    <div class="search-bar">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" placeholder="Search employees, logs...">
-                    </div>
+                    <div class="topbar-clock" id="liveClock">--:--:--</div>
                     <div class="topbar-user">
                         <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
                         <div class="topbar-user-info">
                             <div class="topbar-user-name">{{ session.get('name') }}</div>
                             <div class="topbar-user-role">{% if session.get('role') == 'admin' %}Admin{% else %}Employee{% endif %}</div>
                         </div>
-                        <i class="fa-solid fa-chevron-down" style="font-size:0.6rem; color:var(--text-muted); margin-left:0.25rem;"></i>
                     </div>
                 </div>
             </header>
@@ -122,15 +120,15 @@
                         <div style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                         {% for category, message in messages %}
                             {% if category == 'success' %}
-                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.7rem 1rem; border-radius:10px; font-size:0.82rem; font-weight:600;">
                                 <i class="fa-solid fa-circle-check"></i> {{ message }}
                             </div>
                             {% elif category == 'danger' %}
-                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.7rem 1rem; border-radius:10px; font-size:0.82rem; font-weight:600;">
                                 <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
                             </div>
                             {% else %}
-                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); color:#06b6d4; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:600;">
+                            <div style="display:flex; align-items:center; gap:0.75rem; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); color:#06b6d4; padding:0.7rem 1rem; border-radius:10px; font-size:0.82rem; font-weight:600;">
                                 <i class="fa-solid fa-circle-info"></i> {{ message }}
                             </div>
                             {% endif %}
@@ -146,22 +144,17 @@
     {% else %}
     <!-- AUTH LAYOUT -->
     <div class="auth-wrapper">
-        <div style="position:absolute; inset:0; z-index:0;">
-            <div style="position:absolute; top:-10%; left:-10%; width:40%; height:40%; background:rgba(16,185,129,0.06); border-radius:50%; filter:blur(100px);"></div>
-            <div style="position:absolute; bottom:-10%; right:-10%; width:40%; height:40%; background:rgba(6,182,212,0.06); border-radius:50%; filter:blur(100px);"></div>
-        </div>
-        
         <div class="auth-card">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div style="margin-bottom:1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
                     {% for category, message in messages %}
                         {% if category == 'success' %}
-                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.6rem 1rem; border-radius:10px; font-size:0.8rem; font-weight:600;">
+                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#10b981; padding:0.6rem 1rem; border-radius:10px; font-size:0.78rem; font-weight:600;">
                             <i class="fa-solid fa-check"></i> {{ message }}
                         </div>
                         {% else %}
-                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.6rem 1rem; border-radius:10px; font-size:0.8rem; font-weight:600;">
+                        <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); color:#f43f5e; padding:0.6rem 1rem; border-radius:10px; font-size:0.78rem; font-weight:600;">
                             <i class="fa-solid fa-triangle-exclamation"></i> {{ message }}
                         </div>
                         {% endif %}
@@ -185,6 +178,21 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Toast notification system
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+            toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
     </script>
 </body>
 </html>

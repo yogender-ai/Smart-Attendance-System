@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Settings - Smart Attendance AI{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Configure system preferences{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('settings') }}">
+    <div class="settings-grid">
+        <!-- Attendance Rules -->
+        <div class="settings-section">
+            <h3><i class="fa-solid fa-clock" style="color:var(--accent-gold);"></i> Attendance Rules</h3>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    Late Cutoff Hour
+                    <small>Arrivals after this are marked Late</small>
+                </div>
+                <input type="number" name="late_cutoff_hour" class="setting-input" value="{{ settings.late_cutoff_hour }}" min="0" max="23">
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    Late Cutoff Minute
+                    <small>Minutes past the hour</small>
+                </div>
+                <input type="number" name="late_cutoff_minute" class="setting-input" value="{{ settings.late_cutoff_minute }}" min="0" max="59">
+            </div>
+
+            <div style="margin-top:1rem; padding:0.75rem; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.12); border-radius:10px;">
+                <div style="font-size:0.78rem; color:var(--accent-gold); font-weight:600;">
+                    <i class="fa-solid fa-info-circle"></i> Current: Arrivals after {{ settings.late_cutoff_hour }}:{{ '%02d' | format(settings.late_cutoff_minute|int) }} are marked Late
+                </div>
+            </div>
+        </div>
+
+        <!-- Face Recognition -->
+        <div class="settings-section">
+            <h3><i class="fa-solid fa-camera" style="color:var(--accent-cyan);"></i> Face Recognition</h3>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    Recognition Tolerance
+                    <small>Lower = stricter matching (0.3-0.6)</small>
+                </div>
+                <input type="number" name="face_tolerance" class="setting-input" value="{{ settings.face_tolerance }}" min="0.3" max="0.6" step="0.05">
+            </div>
+
+            <div style="margin-top:1rem; padding:0.75rem; background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.12); border-radius:10px;">
+                <div style="font-size:0.78rem; color:var(--accent-cyan); font-weight:600;">
+                    <i class="fa-solid fa-shield-halved"></i> Strict (0.35-0.45) = Fewer false positives, may need better lighting<br>
+                    <span style="margin-left:1.3rem;">Relaxed (0.50-0.60) = More lenient, slight risk of misidentification</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organization -->
+        <div class="settings-section">
+            <h3><i class="fa-solid fa-building" style="color:var(--accent-purple);"></i> Organization</h3>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    Company Name
+                    <small>Displayed in headers</small>
+                </div>
+                <input type="text" name="company_name" class="setting-input" style="width:200px; text-align:left;" value="{{ settings.company_name }}">
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="settings-section" style="display:flex; flex-direction:column; justify-content:space-between;">
+            <h3><i class="fa-solid fa-download" style="color:var(--accent-emerald);"></i> Data Management</h3>
+            
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <a href="{{ url_for('export_csv') }}" class="btn-sm" style="justify-content:center; padding:0.65rem; font-size:0.82rem;">
+                    <i class="fa-solid fa-file-csv"></i> Export All Attendance (CSV)
+                </a>
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top:1.5rem;">
+                <i class="fa-solid fa-check"></i> Save All Settings
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,41 +1,51 @@
 {% extends 'base.html' %}
-{% block title %}Employee Login - SmartFace{% endblock %}
+{% block title %}Employee Login - Smart Attendance AI{% endblock %}
 
 {% block auth_content %}
-<div class="text-center mb-8">
-    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#00f0ff]/10 border border-[#00f0ff]/20 mb-6 shadow-[0_0_30px_rgba(0,240,255,0.15)]">
-        <i class="fa-regular fa-user text-3xl text-[#00f0ff]"></i>
+<div style="text-align:center; margin-bottom:2rem;">
+    <div style="display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:14px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.12); margin-bottom:1.25rem;">
+        <i class="fa-regular fa-user" style="font-size:1.5rem; color:var(--accent-emerald);"></i>
     </div>
-    <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">Employee Portal</h1>
-    <p class="text-slate-400 font-medium">Verify your credentials to access the grid.</p>
+    <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin-bottom:0.3rem;">Employee Portal</h1>
+    <p style="color:var(--text-muted); font-size:0.82rem;">Verify your credentials to access the system.</p>
 </div>
 
-<form method="POST" class="space-y-5">
+<form method="POST" id="loginForm" style="display:flex; flex-direction:column; gap:1rem;">
     <div>
-        <label class="block text-sm font-semibold text-slate-300 mb-2">Work Email</label>
-        <div class="relative group">
-            <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#00f0ff] transition-colors"></i>
-            <input type="email" name="email" class="w-full pl-12 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]/50 focus:ring-1 focus:ring-[#00f0ff]/50 transition-all font-medium" required placeholder="name@domain.com">
+        <label style="display:block; font-size:0.78rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.4rem;">Work Email</label>
+        <div style="position:relative;">
+            <i class="fa-regular fa-envelope" style="position:absolute; left:0.9rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.85rem;"></i>
+            <input type="email" name="email" class="form-control" style="padding-left:2.5rem;" required placeholder="name@domain.com" autocomplete="email">
         </div>
     </div>
-    
     <div>
-        <label class="block text-sm font-semibold text-slate-300 mb-2">Secure Password</label>
-        <div class="relative group">
-            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#00f0ff] transition-colors"></i>
-            <input type="password" name="password" class="w-full pl-12 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]/50 focus:ring-1 focus:ring-[#00f0ff]/50 transition-all font-medium" required placeholder="••••••••">
+        <label style="display:block; font-size:0.78rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.4rem;">Password</label>
+        <div style="position:relative;">
+            <i class="fa-solid fa-lock" style="position:absolute; left:0.9rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.85rem;"></i>
+            <input type="password" name="password" class="form-control" style="padding-left:2.5rem;" required placeholder="••••••••" autocomplete="current-password">
         </div>
     </div>
-    
-    <button type="submit" class="w-full bg-white text-black font-bold text-lg py-4 rounded-xl mt-4 hover:scale-[1.02] transition-all hover:bg-slate-100 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_10px_30px_rgba(255,255,255,0.25)] flex justify-center items-center gap-2">
-        Authenticate Identity <i class="fa-solid fa-arrow-right"></i>
+    <button type="submit" class="btn-primary" id="loginBtn" style="margin-top:0.5rem; padding:0.85rem;">
+        <span id="loginBtnText">Authenticate</span> <i class="fa-solid fa-arrow-right" id="loginBtnIcon"></i>
     </button>
 </form>
 
-<div class="text-center mt-8 pt-6 border-t border-white/10">
-    <p class="text-slate-400 text-sm">New personnel? <a href="{{ url_for('register') }}" class="text-[#00f0ff] font-semibold hover:text-white transition-colors">Initialize Profile</a></p>
-    <div class="mt-4">
-        <a href="{{ url_for('admin_login') }}" class="text-xs text-slate-500 hover:text-slate-300 font-medium tracking-wide uppercase"><i class="fa-solid fa-shield-halved"></i> Switch to Admin Gateway</a>
-    </div>
+<div style="text-align:center; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border);">
+    <p style="font-size:0.78rem; color:var(--text-muted);">New here? <a href="{{ url_for('register') }}" style="color:var(--accent-emerald); font-weight:600; text-decoration:none;">Create Account</a></p>
+    <a href="{{ url_for('admin_login') }}" style="display:inline-block; margin-top:0.5rem; font-size:0.68rem; color:var(--text-muted); text-decoration:none; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;">
+        <i class="fa-solid fa-shield-halved"></i> Admin Gateway
+    </a>
 </div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function() {
+    const btn = document.getElementById('loginBtn');
+    const text = document.getElementById('loginBtnText');
+    const icon = document.getElementById('loginBtnIcon');
+    btn.disabled = true;
+    text.innerText = 'Authenticating...';
+    icon.className = 'fa-solid fa-circle-notch fa-spin';
+    btn.style.opacity = '0.8';
+});
+</script>
 {% endblock %}

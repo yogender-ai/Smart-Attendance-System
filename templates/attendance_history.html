@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Attendance History - Smart Attendance AI{% endblock %}
+{% block page_title %}Attendance History{% endblock %}
+{% block page_subtitle %}Complete records across all employees{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<form method="GET" action="{{ url_for('attendance_history') }}">
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>From</label>
+            <input type="date" name="date_from" value="{{ date_from }}">
+        </div>
+        <div class="filter-group">
+            <label>To</label>
+            <input type="date" name="date_to" value="{{ date_to }}">
+        </div>
+        <div class="filter-group">
+            <label>Department</label>
+            <select name="department">
+                <option value="">All</option>
+                {% for d in departments %}
+                <option value="{{ d['department'] }}" {% if dept_filter == d['department'] %}selected{% endif %}>{{ d['department'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Status</label>
+            <select name="status">
+                <option value="">All</option>
+                <option value="Present" {% if status_filter == 'Present' %}selected{% endif %}>Present</option>
+                <option value="Late" {% if status_filter == 'Late' %}selected{% endif %}>Late</option>
+                <option value="Absent" {% if status_filter == 'Absent' %}selected{% endif %}>Absent</option>
+                <option value="Leave" {% if status_filter == 'Leave' %}selected{% endif %}>Leave</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-filter"><i class="fa-solid fa-filter"></i> Apply</button>
+        <a href="{{ url_for('attendance_history') }}" class="btn-sm" style="align-self:flex-end;">Clear</a>
+        <a href="{{ url_for('export_csv', date_from=date_from, date_to=date_to) }}" class="btn-sm" style="align-self:flex-end; margin-left:auto;">
+            <i class="fa-solid fa-download"></i> Export CSV
+        </a>
+    </div>
+</form>
+
+<div class="table-panel">
+    <div class="table-header">
+        <span class="table-title">{{ total_records }} Records</span>
+        <span style="font-size:0.72rem; color:var(--text-muted);">Page {{ page }} of {{ total_pages }}</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>ID</th>
+                    <th>Department</th>
+                    <th>Date</th>
+                    <th>Check-in</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <div class="feed-avatar" style="width:28px; height:28px; font-size:0.58rem;">{{ r['name'][0:2] | upper }}</div>
+                            <span style="font-weight:600; color:var(--text-primary); font-size:0.8rem;">{{ r['name'] }}</span>
+                        </div>
+                    </td>
+                    <td style="font-family:monospace; font-weight:600; color:var(--accent-cyan); font-size:0.76rem;">{{ r['employee_id'] }}</td>
+                    <td>
+                        <span style="padding:2px 8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:5px; font-size:0.68rem; font-weight:600; color:var(--text-secondary);">
+                            {{ r['department'] }}
+                        </span>
+                    </td>
+                    <td style="font-weight:600; color:var(--text-primary); font-size:0.8rem;">{{ r['date'] }}</td>
+                    <td style="font-family:monospace; font-size:0.8rem;">{{ r['time'] }}</td>
+                    <td style="font-size:0.7rem; color:var(--text-muted);">
+                        <i class="fa-solid fa-{% if r['method'] == 'Manual Entry' %}pen{% else %}camera{% endif %}" style="margin-right:3px;"></i>
+                        {{ r['method'] or 'Face AI' }}
+                    </td>
+                    <td>
+                        <span class="status-badge {% if r['status'] == 'Late' %}late{% elif r['status'] == 'Absent' %}absent{% elif r['status'] == 'Leave' %}leave{% else %}checked-in{% endif %}">
+                            {{ r['status'] }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-sm" onclick="openEditModal('{{ r['id'] }}', '{{ r['time'] }}', '{{ r['date'] }}', '{{ r['status'] }}', '{{ r['name'] }}')">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center; padding:3rem; color:var(--text-muted);">
+                        <i class="fa-solid fa-calendar-xmark" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.3;"></i>
+                        No records found matching your filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page-1 }}&date_from={{ date_from }}&date_to={{ date_to }}&department={{ dept_filter }}&status={{ status_filter }}">
+            <i class="fa-solid fa-chevron-left"></i> Prev
+        </a>
+        {% else %}
+        <span class="disabled"><i class="fa-solid fa-chevron-left"></i> Prev</span>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="active">{{ p }}</span>
+            {% elif p <= 3 or p > total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+            <a href="?page={{ p }}&date_from={{ date_from }}&date_to={{ date_to }}&department={{ dept_filter }}&status={{ status_filter }}">{{ p }}</a>
+            {% elif p == 4 or p == total_pages - 2 %}
+            <span style="color:var(--text-muted);">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+        <a href="?page={{ page+1 }}&date_from={{ date_from }}&date_to={{ date_to }}&department={{ dept_filter }}&status={{ status_filter }}">
+            Next <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <span class="disabled">Next <i class="fa-solid fa-chevron-right"></i></span>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:100; align-items:center; justify-content:center;">
+    <div class="glass-card" style="width:90%; max-width:400px;">
+        <div class="glass-card-header">
+            <span class="glass-card-title">Edit: <span id="editName" style="color:var(--accent-cyan);"></span></span>
+            <button onclick="closeEditModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="glass-card-body">
+            <form id="editForm" style="display:flex; flex-direction:column; gap:0.85rem;">
+                <input type="hidden" id="editId">
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Date</label>
+                    <input type="date" id="editDate" class="form-control" required style="width:100%;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Time</label>
+                    <input type="time" step="1" id="editTime" class="form-control" required style="width:100%;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Status</label>
+                    <select id="editStatus" class="form-control" style="width:100%; appearance:none;">
+                        <option value="Present" style="background:#0d1117;">Present</option>
+                        <option value="Late" style="background:#0d1117;">Late</option>
+                        <option value="Absent" style="background:#0d1117;">Absent</option>
+                        <option value="Leave" style="background:#0d1117;">Leave</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-primary" onclick="submitEdit()">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditModal(id, time, date, status, name) {
+    document.getElementById('editModal').style.display = 'flex';
+    document.getElementById('editId').value = id;
+    document.getElementById('editTime').value = time;
+    document.getElementById('editDate').value = date;
+    document.getElementById('editStatus').value = status;
+    document.getElementById('editName').innerText = name;
+}
+
+function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+function submitEdit() {
+    fetch('/api/edit_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            id: document.getElementById('editId').value,
+            time: document.getElementById('editTime').value,
+            date: document.getElementById('editDate').value,
+            status: document.getElementById('editStatus').value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        closeEditModal();
+        showToast(data.msg, data.success ? 'success' : 'error');
+        if (data.success) setTimeout(() => location.reload(), 1500);
+    });
+}
+</script>
+{% endblock %}

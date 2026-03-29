@@ -2,270 +2,354 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Scanner - Smart Attendance Pro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Scanner | Face ID</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
-<body style="background:#060911; background-image:radial-gradient(circle at 50% 0%, rgba(16,185,129,0.08), transparent 60%);">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     
-    <!-- Header Bar -->
-    <div style="position:fixed; top:0; left:0; right:0; padding:1.5rem 2.5rem; display:flex; justify-content:space-between; align-items:center; z-index:30;">
-        <div>
-            <h1 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.75rem; color:#f0f6fc;">
-                <span style="width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 0 15px rgba(16,185,129,0.6); animation:pulse-glow 2s infinite;"></span>
-                Biometric Gateway
-            </h1>
-            <p style="font-size:0.72rem; color:#6e7681; margin-top:2px; margin-left:1.6rem; text-transform:uppercase; letter-spacing:1.5px; font-weight:600;">Liveness + Anti-Spoofing Active</p>
-        </div>
-        <a href="{{ url_for('home') }}" style="padding:0.5rem 1.25rem; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#8b949e; text-decoration:none; font-weight:600; font-size:0.82rem; display:flex; align-items:center; gap:0.5rem; transition:all 0.2s;">
-            <i class="fa-solid fa-power-off"></i> Exit Scanner
-        </a>
-    </div>
-
-    <!-- Scanner Content -->
-    <div class="scanner-wrapper">
-        <div class="scanner-card">
-            <!-- Video Feed -->
-            <div>
-                <div class="scanner-vid-wrapper">
-                    <video id="scanVideo" autoplay muted playsinline></video>
-                    
-                    <!-- Scan Overlay -->
-                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                        <div id="scanRing" style="width:180px; height:180px; border:2px dashed rgba(16,185,129,0.35); border-radius:50%; animation:glow-ring 3s ease-in-out infinite;"></div>
-                    </div>
-
-                    <!-- Corner brackets -->
-                    <div style="position:absolute; top:12px; left:12px; width:30px; height:30px; border-top:2px solid rgba(16,185,129,0.5); border-left:2px solid rgba(16,185,129,0.5); border-radius:4px 0 0 0;"></div>
-                    <div style="position:absolute; top:12px; right:12px; width:30px; height:30px; border-top:2px solid rgba(16,185,129,0.5); border-right:2px solid rgba(16,185,129,0.5); border-radius:0 4px 0 0;"></div>
-                    <div style="position:absolute; bottom:12px; left:12px; width:30px; height:30px; border-bottom:2px solid rgba(16,185,129,0.5); border-left:2px solid rgba(16,185,129,0.5); border-radius:0 0 0 4px;"></div>
-                    <div style="position:absolute; bottom:12px; right:12px; width:30px; height:30px; border-bottom:2px solid rgba(16,185,129,0.5); border-right:2px solid rgba(16,185,129,0.5); border-radius:0 0 4px 0;"></div>
-
-                    <!-- Success Overlay -->
-                    <div id="successOverlay" style="position:absolute; inset:0; background:rgba(16,185,129,0.92); backdrop-filter:blur(12px); display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.4s; border-radius:18px; z-index:50;">
-                        <div style="width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; margin-bottom:1rem;">
-                            <i class="fa-solid fa-check" style="font-size:1.8rem; color:#fff;"></i>
-                        </div>
-                        <h2 id="successName" style="font-size:1.5rem; font-weight:800; color:#fff;">Welcome</h2>
-                        <p style="color:rgba(255,255,255,0.8); font-weight:500; margin-top:4px;">Identity verified successfully</p>
-                    </div>
-
-                    <!-- HUD overlay info -->
-                    <div style="position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:6px; font-size:0.68rem; font-weight:600; color:#10b981; z-index:20;">
-                        <span class="live-dot" style="width:6px; height:6px;"></span> LIVE
-                    </div>
-                    <div style="position:absolute; bottom:10px; left:10px; padding:4px 10px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:6px; font-size:0.65rem; font-weight:600; color:#8b949e; z-index:20; font-family:monospace;" id="fpsCounter">FPS: 30</div>
-                    <div style="position:absolute; bottom:10px; right:10px; padding:4px 10px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:6px; font-size:0.65rem; font-weight:600; z-index:20; font-family:monospace;" id="spoofScoreDisplay">
-                        <span style="color:#8b949e;">SPOOF SCORE: </span>
-                        <span id="spoofScoreVal" style="color:#10b981;">--</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Info Panel -->
-            <div class="scanner-info-panel">
-                <!-- Status -->
-                <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:1.25rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                        <span id="statusIcon" style="font-size:1.5rem; color:var(--accent-cyan);"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                        <span id="statusTitle" class="scanner-status-text">Initializing...</span>
-                    </div>
-                    <p id="statusDesc" class="scanner-desc">Please stand in front of the scanner.</p>
-                    
-                    <!-- Confidence bar -->
-                    <div style="margin-top:1rem;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text-muted); margin-bottom:4px; font-weight:600;">
-                            <span>Confidence</span>
-                            <span id="confVal">0%</span>
-                        </div>
-                        <div style="width:100%; height:4px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
-                            <div id="confBar" style="width:0%; height:100%; background:var(--accent-emerald); border-radius:3px; transition:width 0.4s;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Anti-Spoofing Checks -->
-                <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:1.25rem;">
-                    <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:0.75rem;">
-                        <i class="fa-solid fa-shield-check"></i> Anti-Spoofing Engine
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                        <div class="spoof-line" id="sl_texture"><span style="font-size:0.78rem;">🔍 Texture Analysis</span><span class="sl-status" style="font-size:0.68rem; font-weight:700; color:var(--text-muted);">Waiting</span></div>
-                        <div class="spoof-line" id="sl_edge"><span style="font-size:0.78rem;">📐 Edge Density</span><span class="sl-status" style="font-size:0.68rem; font-weight:700; color:var(--text-muted);">Waiting</span></div>
-                        <div class="spoof-line" id="sl_color"><span style="font-size:0.78rem;">🎨 Color Distribution</span><span class="sl-status" style="font-size:0.68rem; font-weight:700; color:var(--text-muted);">Waiting</span></div>
-                        <div class="spoof-line" id="sl_motion"><span style="font-size:0.78rem;">🏃 Face Consistency</span><span class="sl-status" style="font-size:0.68rem; font-weight:700; color:var(--text-muted);">Waiting</span></div>
-                        <div class="spoof-line" id="sl_eyes"><span style="font-size:0.78rem;">👁️ Eye Presence</span><span class="sl-status" style="font-size:0.68rem; font-weight:700; color:var(--text-muted);">Waiting</span></div>
-                    </div>
-                </div>
-
-                <!-- Recognized Person -->
-                <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:1.25rem; display:none;" id="recPanel">
-                    <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <div class="feed-avatar" id="recAvatar" style="width:44px; height:44px; font-size:0.85rem; border:2px solid rgba(16,185,129,0.4);">?</div>
-                        <div>
-                            <div id="recName" style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">Unknown</div>
-                            <div id="recId" style="font-size:0.72rem; color:var(--text-muted); font-family:monospace;">---</div>
-                            <div id="recBadge" style="font-size:0.68rem; color:var(--accent-emerald); font-weight:600; display:flex; align-items:center; gap:4px; margin-top:2px;">
-                                <i class="fa-solid fa-circle-check"></i> Recognized
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <style>
-        .spoof-line {
+        :root {
+            --primary-glow: rgba(56, 189, 248, 0.5);
+            --success-glow: rgba(52, 211, 153, 0.6);
+            --danger-glow: rgba(248, 113, 113, 0.6);
+            --glass-bg: rgba(10, 14, 26, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            width: 100%; height: 100%;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        #video-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+        }
+        
+        #scanVideo {
+            width: 100%; height: 100%;
+            object-fit: contain;
+            transform: scaleX(-1);
+            filter: contrast(1.08) brightness(0.92) saturate(1.15);
+        }
+
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 35%, rgba(0,0,0,0.85) 100%);
+            z-index: 2; pointer-events: none;
+        }
+
+        .top-nav {
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            padding: 25px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.4rem 0.6rem;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-secondary);
+            z-index: 10;
         }
-        .spoof-line.pass { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.04); }
-        .spoof-line.pass .sl-status { color: var(--accent-emerald); }
-        .spoof-line.fail { border-color: rgba(244,63,94,0.25); background: rgba(244,63,94,0.04); }
-        .spoof-line.fail .sl-status { color: var(--accent-rose); }
+
+        .logo {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.35rem; font-weight: 700; letter-spacing: 0.5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .logo i { font-size: 1.5rem; color: #10b981; }
+
+        .nav-btns { display: flex; gap: 0.75rem; }
+
+        .auth-btn {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            padding: 10px 22px;
+            border-radius: 12px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: flex; align-items: center; gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .auth-btn:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        /* Target Reticle */
+        .target-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; height: 500px;
+            z-index: 5;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .bracket {
+            position: absolute;
+            width: 45px; height: 45px;
+            border-color: #10b981;
+            border-style: solid;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+        }
+        .tl { top:0; left:0; border-width: 3px 0 0 3px; }
+        .tr { top:0; right:0; border-width: 3px 3px 0 0; }
+        .bl { bottom:0; left:0; border-width: 0 0 3px 3px; }
+        .br { bottom:0; right:0; border-width: 0 3px 3px 0; }
+
+        .scan-laser {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 100%;
+            background: linear-gradient(180deg, transparent, rgba(16, 185, 129, 0.15) 50%, rgba(16, 185, 129, 0.4) 95%, #10b981 100%);
+            clip-path: inset(0 0 100% 0);
+            animation: scan 2.5s infinite linear;
+            z-index: 6;
+            border-radius: 10px;
+            display: none;
+        }
+        @keyframes scan {
+            0% { clip-path: inset(0 0 100% 0); }
+            50% { clip-path: inset(0 0 0 0); }
+            100% { clip-path: inset(100% 0 0 0); }
+        }
+
+        .target-container.scanning .scan-laser { display: block; }
+        
+        .target-container.success .bracket { 
+            border-color: #34d399; box-shadow: 0 0 30px var(--success-glow);
+            transform: scale(1.05); border-radius: 18px;
+        }
+        .target-container.alert .bracket { 
+            border-color: #f87171; box-shadow: 0 0 30px var(--danger-glow);
+            transform: scale(0.95);
+        }
+
+        /* Status Panel */
+        .status-panel {
+            position: absolute;
+            bottom: 7%; left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            padding: 18px 35px;
+            border-radius: 18px;
+            text-align: center;
+            z-index: 10;
+            min-width: 300px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .status-panel.success { border-color: #34d399; background: rgba(6, 78, 59, 0.6); }
+        .status-panel.error { border-color: #f87171; background: rgba(127, 29, 29, 0.6); animation: shake 0.5s; }
+
+        .status-title { font-size: 1.45rem; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.3px; }
+        .status-desc { font-size: 0.88rem; color: #94a3b8; font-weight: 400; }
+        
+        /* Confidence & Score Meter */
+        .meter-row {
+            display: flex; gap: 1rem; margin-top: 10px; justify-content: center;
+        }
+        .meter {
+            display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: #64748b;
+        }
+        .meter-bar {
+            width: 60px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;
+        }
+        .meter-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+        .meter-fill.green { background: #10b981; }
+        .meter-fill.yellow { background: #f59e0b; }
+        .meter-fill.red { background: #f43f5e; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%); }
+            25% { transform: translateX(-52%); }
+            50% { transform: translateX(-48%); }
+            75% { transform: translateX(-52%); }
+        }
+
+        @media (max-width: 768px) {
+            .target-container { width: 260px; height: 340px; }
+            .top-nav { padding: 15px 20px; flex-direction: column; gap: 12px; }
+            .status-panel { bottom: 4%; padding: 14px 22px; min-width: 260px;}
+        }
     </style>
+</head>
+<body>
+
+    <div id="video-container">
+        <video id="scanVideo" autoplay muted playsinline></video>
+        <div class="vignette"></div>
+    </div>
+
+    <div class="top-nav">
+        <div class="logo">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>SmartFace AI</span>
+        </div>
+        <div class="nav-btns">
+            <a href="{{ url_for('login') }}" class="auth-btn">
+                <i class="fa-solid fa-user"></i> Employee Login
+            </a>
+            <a href="{{ url_for('admin_login') }}" class="auth-btn" style="border-color:rgba(139,92,246,0.2);">
+                <i class="fa-solid fa-shield-halved" style="color:#8b5cf6;"></i> Admin
+            </a>
+        </div>
+    </div>
+
+    <div class="target-container" id="targetBox">
+        <div class="bracket tl"></div><div class="bracket tr"></div>
+        <div class="bracket bl"></div><div class="bracket br"></div>
+        <div class="scan-laser"></div>
+    </div>
+
+    <div class="status-panel" id="statusPanel">
+        <div class="status-title" id="sTitle">Awaiting Subject</div>
+        <div class="status-desc" id="sDesc">Please look directly at the camera</div>
+        <div class="meter-row" id="meterRow" style="display:none;">
+            <div class="meter">
+                <span>Confidence</span>
+                <div class="meter-bar"><div class="meter-fill green" id="confFill" style="width:0%;"></div></div>
+                <span id="confVal">0%</span>
+            </div>
+            <div class="meter">
+                <span>Anti-Spoof</span>
+                <div class="meter-bar"><div class="meter-fill green" id="spoofFill" style="width:0%;"></div></div>
+                <span id="spoofVal">0</span>
+            </div>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
     <script>
     document.addEventListener("DOMContentLoaded", () => {
         startCamera("scanVideo");
 
-        let isProcessing = false;
-        let blinkDetected = false;
-        let eyesWereClosed = false;
-        let frameCount = 0;
-
-        const statusTitle = document.getElementById("statusTitle");
-        const statusDesc = document.getElementById("statusDesc");
-        const statusIcon = document.getElementById("statusIcon");
-        const successOverlay = document.getElementById("successOverlay");
-        const successName = document.getElementById("successName");
-        const confBar = document.getElementById("confBar");
+        const targetBox = document.getElementById("targetBox");
+        const statusPanel = document.getElementById("statusPanel");
+        const sTitle = document.getElementById("sTitle");
+        const sDesc = document.getElementById("sDesc");
+        const vid = document.getElementById("scanVideo");
+        const meterRow = document.getElementById("meterRow");
+        const confFill = document.getElementById("confFill");
         const confVal = document.getElementById("confVal");
-        const spoofScoreVal = document.getElementById("spoofScoreVal");
-        const recPanel = document.getElementById("recPanel");
+        const spoofFill = document.getElementById("spoofFill");
+        const spoofVal = document.getElementById("spoofVal");
 
-        const STEPS = ["Scanning face...", "Detecting landmarks...", "Analyzing geometry...", "Matching identity..."];
-        let step = 0, aiInt = null;
+        let isProc = false, blink = false, eyesClosed = false;
 
-        function startAi() {
-            if (aiInt) return;
-            step = 0;
-            statusTitle.innerText = STEPS[step];
-            statusIcon.innerHTML = '<i class="fa-solid fa-microchip" style="color:var(--accent-cyan);"></i>';
-            aiInt = setInterval(() => { step = (step+1)%STEPS.length; statusTitle.innerText = STEPS[step]; }, 700);
+        function updateMeters(conf, spoof) {
+            meterRow.style.display = 'flex';
+            confFill.style.width = conf + '%';
+            confVal.innerText = conf + '%';
+            confFill.className = 'meter-fill ' + (conf > 60 ? 'green' : conf > 30 ? 'yellow' : 'red');
+            
+            spoofFill.style.width = spoof + '%';
+            spoofVal.innerText = spoof;
+            spoofFill.className = 'meter-fill ' + (spoof > 50 ? 'green' : spoof > 25 ? 'yellow' : 'red');
         }
 
-        function stopAi(msg, desc, icon) {
-            if (aiInt) { clearInterval(aiInt); aiInt = null; }
-            statusTitle.innerText = msg;
-            statusDesc.innerText = desc;
-            statusIcon.innerHTML = icon;
-        }
+        function setCamStatus(title, desc, state) {
+            sTitle.innerHTML = title;
+            sDesc.innerHTML = desc;
+            
+            targetBox.className = "target-container";
+            statusPanel.className = "status-panel";
 
-        function updateSpoofLines(checks) {
-            if (!checks) return;
-            const map = { texture:'sl_texture', edge_density:'sl_edge', color_analysis:'sl_color', face_consistency:'sl_motion', eye_presence:'sl_eyes' };
-            for (const [k, id] of Object.entries(map)) {
-                const el = document.getElementById(id);
-                if (el && checks[k] !== undefined) {
-                    el.classList.remove('pass','fail');
-                    el.classList.add(checks[k] ? 'pass' : 'fail');
-                    el.querySelector('.sl-status').innerText = checks[k] ? '✓ Pass' : '✗ Fail';
-                }
+            if (state === 'scanning') {
+                targetBox.classList.add("scanning");
+            } else if (state === 'success') {
+                targetBox.classList.add("success");
+                statusPanel.classList.add("success");
+            } else if (state === 'alert' || state === 'unregistered') {
+                targetBox.classList.add("alert");
+                statusPanel.classList.add("error");
+            } else {
+                meterRow.style.display = 'none';
             }
         }
 
-        function showSuccess(name) {
-            stopAi("Access Granted", "Identity verified. Attendance recorded.", '<i class="fa-solid fa-unlock" style="color:var(--accent-emerald);"></i>');
-            successName.innerText = `Welcome, ${name}`;
-            successOverlay.style.opacity = '1';
-            setTimeout(() => {
-                successOverlay.style.opacity = '0';
-                blinkDetected = false;
-                eyesWereClosed = false;
-                isProcessing = false;
-                recPanel.style.display = 'none';
-                setTimeout(scanLoop, 500);
-            }, 3500);
-        }
+        async function engine() {
+            if(!isProc && vid.readyState === 4) {
+                isProc = true;
+                const b64 = captureFrame("scanVideo");
+                if(!b64) { isProc = false; setTimeout(engine, 600); return; }
 
-        // FPS counter
-        setInterval(() => {
-            document.getElementById("fpsCounter").innerText = `FPS: ${Math.min(30, Math.round(frameCount/2))}`;
-            frameCount = 0;
-        }, 2000);
-
-        async function scanLoop() {
-            if (!isProcessing) {
-                isProcessing = true;
-                frameCount++;
-                const base64Img = captureFrame("scanVideo");
                 try {
-                    const response = await fetch("{{ url_for('api_recognize_face') }}", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: base64Img, liveness_verified: blinkDetected })
+                    const req = await fetch("{{ url_for('api_recognize_face') }}", {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({image:b64, liveness_verified:blink})
                     });
-                    const result = await response.json();
+                    const res = await req.json();
 
-                    // Update spoof
-                    updateSpoofLines(result.spoof_checks);
-                    if (result.anti_spoof_score !== undefined) {
-                        spoofScoreVal.innerText = result.anti_spoof_score;
-                        spoofScoreVal.style.color = result.anti_spoof_score > 50 ? '#10b981' : result.anti_spoof_score > 25 ? '#f59e0b' : '#f43f5e';
+                    if (res.confidence !== undefined || res.anti_spoof_score !== undefined) {
+                        updateMeters(res.confidence || 0, res.anti_spoof_score || 0);
                     }
 
-                    // Update confidence
-                    if (result.confidence) {
-                        confBar.style.width = result.confidence + '%';
-                        confVal.innerText = result.confidence + '%';
-                        confBar.style.background = result.confidence > 70 ? 'var(--accent-emerald)' : result.confidence > 40 ? 'var(--accent-gold)' : 'var(--accent-rose)';
-                    }
+                    if (res.multi_face) {
+                        setCamStatus("Multiple Faces", "Only one person at a time please", "alert");
+                    } else if(res.spoofing_detected) {
+                        setCamStatus("⚠️ Spoof Detected", "Live presence required. Remove phone/screen.", "alert");
+                    } else if(res.recognized) {
+                        if(!res.has_eyes) { eyesClosed = true; } 
+                        if(eyesClosed && res.has_eyes) { blink = true; }
 
-                    if (result.spoofing_detected) {
-                        stopAi("⚠️ Spoofing Detected!", "Live presence required.", '<i class="fa-solid fa-shield-exclamation" style="color:var(--accent-rose); font-size:1.5rem;"></i>');
-                        recPanel.style.display = 'none';
-                    } else if (result.recognized) {
-                        startAi();
-                        if (result.user) {
-                            recPanel.style.display = 'block';
-                            document.getElementById("recName").innerText = result.user;
-                            document.getElementById("recId").innerText = result.emp_id || '---';
-                            document.getElementById("recAvatar").innerText = result.user.substring(0,2).toUpperCase();
-                        }
-                        if (!blinkDetected) {
-                            stopAi("Liveness Check", result.msg || "Please blink to verify", '<i class="fa-solid fa-eye" style="color:var(--accent-gold); font-size:1.5rem;"></i>');
-                            if (!result.has_eyes) eyesWereClosed = true;
-                            else if (eyesWereClosed && result.has_eyes) {
-                                blinkDetected = true;
-                                statusDesc.innerText = "Liveness Verified. Unlocking...";
-                            }
-                        } else if (result.success) {
-                            showSuccess(result.user || "User");
+                        if(!blink) {
+                            setCamStatus(`<i class="fa-solid fa-fingerprint"></i> ${res.user}`, `Confidence: ${res.confidence}%. Blink to verify.`, "scanning");
+                        } else if(res.success) {
+                            let initials = res.user.substring(0, 2).toUpperCase();
+                            let avatar = `<div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981, #06b6d4); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800; color:#fff; border:3px solid #fff; box-shadow:0 0 25px rgba(16,185,129,0.6); margin:0 auto 10px;">${initials}</div>`;
+                            setCamStatus(avatar + `<div>Access Granted</div>`, `<span style='color:#34d399; font-weight:700; font-size:1.05rem;'>Welcome back, ${res.user}</span>`, "success");
+                            
+                            setTimeout(() => {
+                                blink = false; eyesClosed = false; isProc = false;
+                                setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
+                                setTimeout(engine, 500);
+                            }, 4000);
                             return;
                         }
+                    } else if(res.recognized === false && res.msg !== "Waiting for valid subject...") {
+                        setCamStatus("Identity Unknown", "⚠️ Please <a href='{{ url_for('login') }}' style='color:#10b981; font-weight:bold;'>Register</a> first.", "unregistered");
+                        setTimeout(() => {
+                            isProc = false;
+                            setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
+                            setTimeout(engine, 500);
+                        }, 3000);
+                        return;
                     } else {
-                        stopAi("Awaiting Subject", "Move closer or adjust lighting.", '<i class="fa-solid fa-face-viewfinder" style="color:var(--text-muted); font-size:1.5rem;"></i>');
-                        recPanel.style.display = 'none';
-                        confBar.style.width = '0%';
-                        confVal.innerText = '0%';
+                        setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
                     }
-                } catch (err) { console.error(err); }
-                isProcessing = false;
+                } catch(e) { console.error(e); }
+                isProc = false;
             }
-            setTimeout(scanLoop, 600);
+            setTimeout(engine, 400);
         }
-
-        setTimeout(scanLoop, 1500);
+        
+        setTimeout(() => {
+            setCamStatus("Initializing AI...", "Calibrating deep learning engine", "scanning");
+            setTimeout(() => {
+                setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
+                engine();
+            }, 1200);
+        }, 600);
     });
     </script>
 </body>

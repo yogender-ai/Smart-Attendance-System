@@ -1,7 +1,7 @@
 Flask
-opencv-python
-face_recognition
+opencv-contrib-python
 numpy
 pandas
 flask-login
 flask-mail
+Pillow

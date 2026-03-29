@@ -1,21 +1,25 @@
 {% extends 'base.html' %}
-{% block title %}Admin Dashboard - Smart Attendance Pro{% endblock %}
-{% block page_title %}Smart Attendance System{% endblock %}
-{% block page_subtitle %}AI-Powered Face Recognition for Modern Workforce Management{% endblock %}
+{% block title %}Admin Dashboard - Smart Attendance AI{% endblock %}
+{% block page_title %}Command Center{% endblock %}
+{% block page_subtitle %}Real-time workforce monitoring{% endblock %}
 
 {% block content %}
-<!-- 4 STAT CARDS -->
+<!-- 4 STAT CARDS with real trends -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-card-header">
             <div class="stat-icon emerald"><i class="fa-solid fa-user-check"></i></div>
             <span class="stat-title">Present Today</span>
         </div>
-        <div class="stat-value">{{ present_today }}</div>
+        <div class="stat-value" data-count="{{ present_today }}">{{ present_today }}</div>
         <div class="stat-trend">
-            <span class="trend-badge up"><i class="fa-solid fa-arrow-up"></i> 12%</span>
+            <span class="trend-badge {% if present_trend >= 0 %}up{% else %}down{% endif %}">
+                <i class="fa-solid fa-arrow-{% if present_trend >= 0 %}up{% else %}down{% endif %}"></i>
+                {{ present_trend|abs }}%
+            </span>
             vs yesterday
         </div>
+        <div class="stat-sparkline"><canvas id="sparkPresent"></canvas></div>
     </div>
 
     <div class="stat-card">
@@ -23,10 +27,11 @@
             <div class="stat-icon gold"><i class="fa-solid fa-clock"></i></div>
             <span class="stat-title">Late Arrivals</span>
         </div>
-        <div class="stat-value">{{ late_count }}</div>
+        <div class="stat-value" data-count="{{ late_count }}">{{ late_count }}</div>
         <div class="stat-trend">
-            <span class="trend-badge {% if late_count > 5 %}down{% else %}up{% endif %}">
-                <i class="fa-solid fa-arrow-{% if late_count > 5 %}down{% else %}up{% endif %}"></i> 3%
+            <span class="trend-badge {% if late_trend <= 0 %}up{% else %}down{% endif %}">
+                <i class="fa-solid fa-arrow-{% if late_trend <= 0 %}up{% else %}down{% endif %}"></i>
+                {{ late_trend|abs }}%
             </span>
             vs yesterday
         </div>
@@ -34,11 +39,11 @@
 
     <div class="stat-card">
         <div class="stat-card-header">
-            <div class="stat-icon cyan"><i class="fa-solid fa-users"></i></div>
-            <span class="stat-title">Total Employees</span>
+            <div class="stat-icon rose"><i class="fa-solid fa-user-xmark"></i></div>
+            <span class="stat-title">Absent</span>
         </div>
-        <div class="stat-value">{{ total_emp }}</div>
-        <div class="stat-trend" style="color: var(--text-muted);">Active workforce</div>
+        <div class="stat-value" data-count="{{ absent_today }}">{{ absent_today }}</div>
+        <div class="stat-trend" style="color: var(--text-muted);">of {{ total_emp }} employees</div>
     </div>
 
     <div class="stat-card">
@@ -46,23 +51,24 @@
             <div class="stat-icon purple"><i class="fa-solid fa-chart-pie"></i></div>
             <span class="stat-title">Attendance Rate</span>
         </div>
-        <div class="stat-value">{{ attendance_rate }}%</div>
+        <div class="stat-value" data-count="{{ attendance_rate }}">{{ attendance_rate }}%</div>
         <div class="stat-trend">
-            <span class="trend-badge up"><i class="fa-solid fa-arrow-up"></i> 2.1%</span>
-            vs last month
+            <span class="trend-badge {% if attendance_rate >= 80 %}up{% elif attendance_rate >= 50 %}neutral{% else %}down{% endif %}">
+                {% if attendance_rate >= 80 %}Excellent{% elif attendance_rate >= 50 %}Moderate{% else %}Low{% endif %}
+            </span>
         </div>
     </div>
 </div>
 
-<!-- MAIN DASHBOARD GRID: Terminal + Live Feed -->
+<!-- MAIN DASHBOARD GRID -->
 <div class="dashboard-grid">
     <!-- FACE RECOGNITION TERMINAL -->
     <div class="glass-card" style="animation-delay: 0.25s;">
         <div class="glass-card-header">
             <span class="glass-card-title">
-                <i class="fa-solid fa-face-viewfinder"></i> Face Recognition Terminal
+                <i class="fa-solid fa-camera"></i> Face Recognition Terminal
             </span>
-            <span style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:600; color:var(--accent-emerald);">
+            <span style="display:flex; align-items:center; gap:6px; font-size:0.7rem; font-weight:600; color:var(--accent-emerald);">
                 <span class="live-dot"></span> Camera Online
             </span>
         </div>
@@ -79,19 +85,19 @@
                     <!-- Success Overlay -->
                     <div id="dashSuccess" style="position:absolute; inset:0; background:rgba(16,185,129,0.9); backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.4s; border-radius:12px; z-index:50;">
                         <i class="fa-solid fa-check" style="font-size:2.5rem; color:#fff; margin-bottom:0.75rem;"></i>
-                        <div id="dashSuccessName" style="font-size:1.2rem; font-weight:700; color:#fff;">Welcome</div>
-                        <div style="font-size:0.78rem; color:rgba(255,255,255,0.8); margin-top:4px;">Identity verified</div>
+                        <div id="dashSuccessName" style="font-size:1.15rem; font-weight:700; color:#fff;">Welcome</div>
+                        <div style="font-size:0.75rem; color:rgba(255,255,255,0.8); margin-top:4px;">Identity verified</div>
                     </div>
                 </div>
 
                 <!-- Scanning Status -->
-                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
-                    <span id="dashStatusIcon" style="font-size:1.2rem; color:var(--accent-cyan);"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                    <span id="dashStatusText" style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">Scanning...</span>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.65rem;">
+                    <span id="dashStatusIcon" style="font-size:1.1rem; color:var(--accent-cyan);"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                    <span id="dashStatusText" style="font-size:0.82rem; font-weight:600; color:var(--text-primary);">Scanning...</span>
                 </div>
-                <p id="dashStatusDesc" style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">Position your face in the frame</p>
+                <p id="dashStatusDesc" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.65rem;">Position your face in the frame</p>
 
-                <!-- Recognition Info (shown when face detected) -->
+                <!-- Recognition Info -->
                 <div class="recognition-info" id="dashRecInfo" style="display:none;">
                     <div class="rec-avatar" id="dashRecAvatar">?</div>
                     <div class="rec-details">
@@ -115,6 +121,10 @@
                         <span class="check-icon">🎨</span>
                         <span class="check-label">Color</span>
                     </div>
+                    <div class="spoof-check" id="spoof_freq">
+                        <span class="check-icon">📡</span>
+                        <span class="check-label">Freq</span>
+                    </div>
                     <div class="spoof-check" id="spoof_motion">
                         <span class="check-icon">🏃</span>
                         <span class="check-label">Motion</span>
@@ -136,25 +146,25 @@
             </span>
             <a href="{{ url_for('attendance_history') }}" class="btn-sm">View All <i class="fa-solid fa-arrow-right"></i></a>
         </div>
-        <div class="glass-card-body" style="padding: 0.75rem 1.25rem;">
+        <div class="glass-card-body" style="padding: 0.65rem 1.15rem;">
             <div class="live-feed-list" id="liveFeedList">
                 {% for log in recent_attendance %}
-                <div class="feed-item">
+                <div class="feed-item" style="animation-delay: {{ loop.index * 0.05 }}s;">
                     <div class="feed-item-left">
                         <div class="feed-avatar">{{ log['name'][0:2] | upper }}</div>
                         <div>
                             <div class="feed-name">{{ log['name'] }}</div>
                             <div class="feed-id">{{ log['employee_id'] }}</div>
-                            <span class="status-badge {% if log['status'] == 'Late' %}late{% else %}checked-in{% endif %}">{{ log['status'] }}</span>
+                            <span class="status-badge {% if log['status'] == 'Late' %}late{% elif log['status'] == 'Absent' %}absent{% else %}checked-in{% endif %}">{{ log['status'] }}</span>
                         </div>
                     </div>
                     <div class="feed-item-right">
                         <div class="feed-time">{{ log['time'][:5] }}</div>
-                        <div class="feed-method"><i class="fa-solid fa-face-viewfinder"></i> Face Recognition</div>
+                        <div class="feed-method"><i class="fa-solid fa-camera"></i> Face AI</div>
                     </div>
                 </div>
                 {% else %}
-                <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.85rem;">
+                <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.82rem;">
                     <i class="fa-solid fa-inbox" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.4;"></i>
                     No attendance recorded today
                 </div>
@@ -164,48 +174,29 @@
     </div>
 </div>
 
-<!-- BOTTOM GRID: Recent Attendance + System Status -->
-<div class="dashboard-grid" style="margin-top:0;">
-    <!-- RECENT ATTENDANCE TABLE -->
-    <div class="table-panel" style="animation-delay: 0.35s;">
-        <div class="table-header">
-            <span class="table-title">Recent Attendance</span>
-            <a href="{{ url_for('attendance_history') }}" class="btn-sm">View Full Report <i class="fa-solid fa-arrow-right"></i></a>
+<!-- BOTTOM: Quick Actions + System Status + Admin Profile -->
+<div class="dashboard-grid-3" style="margin-top:0;">
+    <!-- QUICK ACTIONS -->
+    <div class="glass-card" style="animation-delay: 0.35s;">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-bolt"></i> Quick Actions</span>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Employee</th>
-                    <th>ID</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                    <th>Method</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in recent_attendance[:8] %}
-                <tr>
-                    <td style="display:flex; align-items:center; gap:0.6rem;">
-                        <div class="feed-avatar" style="width:30px; height:30px; font-size:0.6rem;">{{ log['name'][0:2] | upper }}</div>
-                        <div>
-                            <div style="font-weight:600; color:var(--text-primary); font-size:0.82rem;">{{ log['name'] }}</div>
-                            {% if log['department'] %}<div style="font-size:0.68rem; color:var(--text-muted);">{{ log['department'] }}</div>{% endif %}
-                        </div>
-                    </td>
-                    <td style="font-family:monospace; font-weight:600; color:var(--accent-cyan); font-size:0.78rem;">{{ log['employee_id'] }}</td>
-                    <td style="font-family:monospace; font-size:0.82rem;">{{ log['time'][:5] }} AM</td>
-                    <td>
-                        <span class="status-badge {% if log['status'] == 'Late' %}late{% else %}checked-in{% endif %}">{{ log['status'] }}</span>
-                    </td>
-                    <td style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-face-viewfinder"></i> Face Recog.</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" style="text-align:center; padding:2rem; color:var(--text-muted); font-style:italic;">No attendance records for today.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="glass-card-body">
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="openManualModal()">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Manual Entry</span>
+                </button>
+                <a href="{{ url_for('export_csv') }}" class="quick-action-btn">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Export CSV</span>
+                </a>
+                <a href="{{ url_for('analytics') }}" class="quick-action-btn">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- SYSTEM STATUS -->
@@ -214,7 +205,7 @@
             <span class="glass-card-title"><i class="fa-solid fa-server"></i> System Status</span>
         </div>
         <div class="glass-card-body">
-            <div class="system-status-list">
+            <div class="system-status-list" id="systemStatusList">
                 <div class="system-status-item">
                     <div class="status-left">
                         <div class="status-icon camera"><i class="fa-solid fa-video"></i></div>
@@ -225,24 +216,22 @@
                     </div>
                     <span class="status-badge online">Online</span>
                 </div>
-
                 <div class="system-status-item">
                     <div class="status-left">
                         <div class="status-icon ai"><i class="fa-solid fa-brain"></i></div>
                         <div>
-                            <div class="status-name">AI Recognition</div>
-                            <div class="status-detail">Model accuracy: 97.2%</div>
+                            <div class="status-name">AI Engine</div>
+                            <div class="status-detail" id="aiDetail">Deep Learning Active</div>
                         </div>
                     </div>
                     <span class="status-badge active">Active</span>
                 </div>
-
                 <div class="system-status-item">
                     <div class="status-left">
                         <div class="status-icon db"><i class="fa-solid fa-database"></i></div>
                         <div>
                             <div class="status-name">Database</div>
-                            <div class="status-detail" id="dbBackupTime">Last backup: 2 min ago</div>
+                            <div class="status-detail" id="dbDetail">Healthy</div>
                         </div>
                     </div>
                     <span class="status-badge healthy">Healthy</span>
@@ -250,54 +239,257 @@
             </div>
         </div>
     </div>
+
+    <!-- ADMIN PROFILE -->
+    <div class="glass-card" style="animation-delay: 0.45s;">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-id-badge"></i> Admin Profile</span>
+        </div>
+        <div class="glass-card-body">
+            <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem;">
+                <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border:2px solid rgba(139,92,246,0.3); box-shadow:0 0 15px rgba(139,92,246,0.3); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; color:#fff;">
+                    {{ admin['name'][0:2].upper() if admin else 'AD' }}
+                </div>
+                <div>
+                    <div style="font-size:1.05rem; font-weight:700; color:var(--text-primary);">{{ admin['name'] if admin else 'Super Admin' }}</div>
+                    <div style="font-size:0.68rem; color:var(--accent-purple); font-family:monospace; font-weight:600;">ADMINISTRATOR</div>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                <div style="display:flex; justify-content:space-between; padding-bottom:0.4rem; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span style="font-size:0.76rem; color:var(--text-muted);">Email</span>
+                    <span style="font-size:0.78rem; color:var(--text-primary); font-weight:500;">{{ admin['email'] if admin else 'admin@system.local' }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-bottom:0.4rem; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span style="font-size:0.76rem; color:var(--text-muted);">Access Level</span>
+                    <span style="font-size:0.78rem; color:var(--accent-emerald); font-weight:600;">Full Access</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- MANUAL ATTENDANCE MODAL -->
+<div id="manualModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:100; align-items:center; justify-content:center;">
+    <div class="glass-card" style="width:90%; max-width:440px;">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-pen-to-square"></i> Manual Attendance</span>
+            <button onclick="closeManualModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="glass-card-body">
+            <form id="manualForm" style="display:flex; flex-direction:column; gap:0.85rem;">
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Employee</label>
+                    <select id="manualEmployee" class="form-control" style="width:100%; appearance:none;">
+                        {% for emp in employees_list %}
+                        <option value="{{ emp['id'] }}" style="background:#0d1117;">{{ emp['name'] }} ({{ emp['employee_id'] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Date</label>
+                        <input type="date" id="manualDate" class="form-control" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Time</label>
+                        <input type="time" step="1" id="manualTime" class="form-control" style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Status</label>
+                    <select id="manualStatus" class="form-control" style="width:100%; appearance:none;">
+                        <option value="Present" style="background:#0d1117;">Present</option>
+                        <option value="Late" style="background:#0d1117;">Late</option>
+                        <option value="Absent" style="background:#0d1117;">Absent</option>
+                        <option value="Leave" style="background:#0d1117;">Leave</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-primary" onclick="submitManual()" style="margin-top:0.4rem;">
+                    <i class="fa-solid fa-check"></i> Mark Attendance
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT ATTENDANCE MODAL -->
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:100; align-items:center; justify-content:center;">
+    <div class="glass-card" style="width:90%; max-width:400px;">
+        <div class="glass-card-header">
+            <span class="glass-card-title">Edit: <span id="editName" style="color:var(--accent-cyan);"></span></span>
+            <button onclick="closeEditModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="glass-card-body">
+            <form id="editForm" style="display:flex; flex-direction:column; gap:0.85rem;">
+                <input type="hidden" id="editId">
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Date</label>
+                    <input type="date" id="editDate" class="form-control" required style="width:100%;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Time</label>
+                    <input type="time" step="1" id="editTime" class="form-control" required style="width:100%;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.35rem; font-weight:600;">Status</label>
+                    <select id="editStatus" class="form-control" style="width:100%; appearance:none;">
+                        <option value="Present" style="background:#0d1117;">Present</option>
+                        <option value="Late" style="background:#0d1117;">Late</option>
+                        <option value="Absent" style="background:#0d1117;">Absent</option>
+                        <option value="Leave" style="background:#0d1117;">Leave</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-primary" onclick="submitEdit()">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
 <script>
+// --- Manual Entry Modal ---
+function openManualModal() {
+    const now = new Date();
+    document.getElementById('manualDate').value = now.toISOString().split('T')[0];
+    document.getElementById('manualTime').value = now.toTimeString().split(' ')[0];
+    document.getElementById('manualModal').style.display = 'flex';
+}
+function closeManualModal() { document.getElementById('manualModal').style.display = 'none'; }
+
+function submitManual() {
+    fetch('/api/manual_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: document.getElementById('manualEmployee').value,
+            date: document.getElementById('manualDate').value,
+            time: document.getElementById('manualTime').value,
+            status: document.getElementById('manualStatus').value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        closeManualModal();
+        showToast(data.msg, data.success ? 'success' : 'error');
+        if (data.success) setTimeout(() => location.reload(), 1500);
+    });
+}
+
+// --- Edit Modal ---
+function openEditModal(id, time, date, status, name) {
+    document.getElementById('editModal').style.display = 'flex';
+    document.getElementById('editId').value = id;
+    document.getElementById('editTime').value = time;
+    document.getElementById('editDate').value = date;
+    document.getElementById('editStatus').value = status;
+    document.getElementById('editName').innerText = name;
+}
+function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+function submitEdit() {
+    fetch('/api/edit_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            id: document.getElementById('editId').value,
+            time: document.getElementById('editTime').value,
+            date: document.getElementById('editDate').value,
+            status: document.getElementById('editStatus').value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        closeEditModal();
+        showToast(data.msg, data.success ? 'success' : 'error');
+        if (data.success) setTimeout(() => location.reload(), 1500);
+    });
+}
+
+// --- Sparkline Chart ---
+function drawSparkline(canvasId, data, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = 56;
+
+    const max = Math.max(...data, 1);
+    const w = canvas.width;
+    const h = canvas.height;
+    const step = w / (data.length - 1);
+
+    // Gradient fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, color.replace(')', ', 0.3)').replace('rgb', 'rgba'));
+    gradient.addColorStop(1, 'transparent');
+
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    data.forEach((v, i) => {
+        const x = i * step;
+        const y = h - (v / max) * (h * 0.85);
+        if (i === 0) ctx.lineTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    data.forEach((v, i) => {
+        const x = i * step;
+        const y = h - (v / max) * (h * 0.85);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Dot on last point
+    const lastX = (data.length - 1) * step;
+    const lastY = h - (data[data.length - 1] / max) * (h * 0.85);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+// --- Dashboard Face Scanner ---
 document.addEventListener("DOMContentLoaded", () => {
+    // Sparkline
+    const weeklyData = {{ weekly_data | tojson | safe }};
+    drawSparkline('sparkPresent', weeklyData, 'rgb(16, 185, 129)');
+
+    // System status
+    fetch("{{ url_for('api_system_status') }}")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('aiDetail').innerText = data.ai.detail;
+            document.getElementById('dbDetail').innerText = data.database.detail;
+        }).catch(() => {});
+
     // Start dashboard camera
     startCamera("dashVideo");
 
     const statusText = document.getElementById("dashStatusText");
     const statusDesc = document.getElementById("dashStatusDesc");
     const statusIcon = document.getElementById("dashStatusIcon");
-    const scanRing = document.getElementById("dashScanRing");
     const successOverlay = document.getElementById("dashSuccess");
     const successName = document.getElementById("dashSuccessName");
     const recInfo = document.getElementById("dashRecInfo");
     const recName = document.getElementById("dashRecName");
     const recId = document.getElementById("dashRecId");
     const recAvatar = document.getElementById("dashRecAvatar");
-    const recStatus = document.getElementById("dashRecStatus");
 
     let isProcessing = false;
     let blinkDetected = false;
     let eyesWereClosed = false;
-
-    const AI_STEPS = ["Scanning face...", "Detecting landmarks...", "Analyzing geometry...", "Matching identity..."];
-    let aiStep = 0;
-    let aiInterval = null;
-
-    function startAiCycle() {
-        if (aiInterval) return;
-        aiStep = 0;
-        statusText.innerText = AI_STEPS[aiStep];
-        statusIcon.innerHTML = '<i class="fa-solid fa-microchip" style="animation:pulse-glow 1.5s infinite;"></i>';
-        aiInterval = setInterval(() => {
-            aiStep = (aiStep + 1) % AI_STEPS.length;
-            statusText.innerText = AI_STEPS[aiStep];
-        }, 700);
-    }
-
-    function stopAiCycle(msg, desc, icon) {
-        if (aiInterval) { clearInterval(aiInterval); aiInterval = null; }
-        statusText.innerText = msg;
-        statusDesc.innerText = desc;
-        statusIcon.innerHTML = icon;
-    }
 
     function updateSpoofChecks(checks) {
         if (!checks) return;
@@ -305,6 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
             texture: 'spoof_texture',
             edge_density: 'spoof_edge',
             color_analysis: 'spoof_color',
+            frequency: 'spoof_freq',
             face_consistency: 'spoof_motion',
             eye_presence: 'spoof_eyes'
         };
@@ -318,7 +511,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showSuccess(name) {
-        stopAiCycle("Access Granted", "Identity verified successfully.", '<i class="fa-solid fa-unlock" style="color:var(--accent-emerald);"></i>');
+        statusText.innerText = "Access Granted";
+        statusDesc.innerText = "Identity verified successfully.";
+        statusIcon.innerHTML = '<i class="fa-solid fa-unlock" style="color:var(--accent-emerald);"></i>';
         successName.innerText = `Welcome, ${name}`;
         successOverlay.style.opacity = '1';
 
@@ -344,16 +539,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 const result = await response.json();
 
-                // Update anti-spoof panel
                 if (result.spoof_checks) updateSpoofChecks(result.spoof_checks);
 
                 if (result.spoofing_detected) {
-                    stopAiCycle("⚠️ Spoofing Detected", "Live presence required. Score: " + result.anti_spoof_score, '<i class="fa-solid fa-shield-exclamation" style="color:var(--accent-rose);"></i>');
+                    statusText.innerText = "⚠️ Spoofing Detected";
+                    statusDesc.innerText = "Live presence required. Score: " + result.anti_spoof_score;
+                    statusIcon.innerHTML = '<i class="fa-solid fa-shield-exclamation" style="color:var(--accent-rose);"></i>';
                     recInfo.style.display = 'none';
                 } else if (result.recognized) {
-                    startAiCycle();
-
-                    // Show recognition info
                     if (result.user) {
                         recInfo.style.display = 'flex';
                         recName.innerText = result.user;
@@ -362,26 +555,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
                     if (!blinkDetected) {
-                        stopAiCycle("Liveness Check", "Please blink to verify", '<i class="fa-solid fa-eye" style="color:var(--accent-gold);"></i>');
-                        if (!result.has_eyes) {
-                            eyesWereClosed = true;
-                        } else if (eyesWereClosed && result.has_eyes) {
+                        statusText.innerText = "Liveness Check";
+                        statusDesc.innerText = "Please blink to verify";
+                        statusIcon.innerHTML = '<i class="fa-solid fa-eye" style="color:var(--accent-gold);"></i>';
+                        if (!result.has_eyes) eyesWereClosed = true;
+                        else if (eyesWereClosed && result.has_eyes) {
                             blinkDetected = true;
                             statusDesc.innerText = "Liveness Verified. Unlocking...";
                         }
                     } else if (result.success) {
                         showSuccess(result.user || "User");
-                        // Refresh the page feed after successful attendance
                         setTimeout(() => location.reload(), 4000);
                         return;
                     }
                 } else {
-                    stopAiCycle("Awaiting Subject", "Position your face in the frame", '<i class="fa-solid fa-face-viewfinder" style="color:var(--text-muted);"></i>');
+                    statusText.innerText = "Awaiting Subject";
+                    statusDesc.innerText = "Position your face in the frame";
+                    statusIcon.innerHTML = '<i class="fa-solid fa-camera" style="color:var(--text-muted);"></i>';
                     recInfo.style.display = 'none';
                 }
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
             isProcessing = false;
         }
         setTimeout(scanLoop, 600);
@@ -409,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="feed-item-right">
                                 <div class="feed-time">${f.time.substring(0,5)}</div>
-                                <div class="feed-method"><i class="fa-solid fa-face-viewfinder"></i> ${f.method}</div>
+                                <div class="feed-method"><i class="fa-solid fa-camera"></i> ${f.method}</div>
                             </div>
                         </div>
                     `).join('');

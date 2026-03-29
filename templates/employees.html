@@ -1,20 +1,31 @@
 {% extends 'base.html' %}
-{% block title %}Employees - Smart Attendance Pro{% endblock %}
+{% block title %}Employees - Smart Attendance AI{% endblock %}
 {% block page_title %}Employee Directory{% endblock %}
 {% block page_subtitle %}Manage active personnel and biometric registrations{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-    <div style="display:flex; align-items:center; gap:0.75rem;">
-        <span style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">{{ employees|length }} Total Employees</span>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem;">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <span style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">{{ employees|length }} Employees</span>
+        {% for dept in dept_stats %}
+        <span style="padding:3px 10px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; font-size:0.68rem; font-weight:600; color:var(--text-muted);">
+            {{ dept['department'] }}: {{ dept['count'] }}
+        </span>
+        {% endfor %}
     </div>
-    <a href="{{ url_for('register') }}" style="background:var(--accent-emerald); color:#000; font-weight:700; padding:0.5rem 1.25rem; border-radius:10px; text-decoration:none; font-size:0.82rem; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s;">
-        <i class="fa-solid fa-user-plus"></i> Onboard New
-    </a>
+    <div style="display:flex; gap:0.65rem; align-items:center;">
+        <div class="search-bar" style="min-width:180px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="empSearch" placeholder="Search employees..." oninput="filterEmployees()">
+        </div>
+        <a href="{{ url_for('register') }}" style="background:linear-gradient(135deg, var(--accent-emerald), #059669); color:#fff; font-weight:700; padding:0.45rem 1.15rem; border-radius:10px; text-decoration:none; font-size:0.8rem; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s; box-shadow:0 4px 12px rgba(16,185,129,0.2); white-space:nowrap;">
+            <i class="fa-solid fa-user-plus"></i> Onboard New
+        </a>
+    </div>
 </div>
 
 <div class="table-panel">
-    <table>
+    <table id="empTable">
         <thead>
             <tr>
                 <th>Employee</th>
@@ -27,17 +38,20 @@
         </thead>
         <tbody>
             {% for emp in employees %}
-            <tr>
+            <tr class="emp-row" data-name="{{ emp['name']|lower }}" data-dept="{{ emp['department']|lower }}" data-id="{{ emp['employee_id']|lower }}">
                 <td>
-                    <div style="display:flex; align-items:center; gap:0.65rem;">
-                        <div class="feed-avatar" style="width:32px; height:32px; font-size:0.65rem;">{{ emp['name'][0:2] | upper }}</div>
-                        <span style="font-weight:600; color:var(--text-primary);">{{ emp['name'] }}</span>
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <div class="feed-avatar" style="width:32px; height:32px; font-size:0.62rem;">{{ emp['name'][0:2] | upper }}</div>
+                        <div>
+                            <span style="font-weight:600; color:var(--text-primary); font-size:0.82rem;">{{ emp['name'] }}</span>
+                            {% if emp['phone'] %}<div style="font-size:0.65rem; color:var(--text-muted);">{{ emp['phone'] }}</div>{% endif %}
+                        </div>
                     </div>
                 </td>
-                <td style="font-family:monospace; font-weight:600; color:var(--accent-cyan); font-size:0.78rem;">{{ emp['employee_id'] }}</td>
-                <td style="font-size:0.8rem;">{{ emp['email'] }}</td>
+                <td style="font-family:monospace; font-weight:600; color:var(--accent-cyan); font-size:0.76rem;">{{ emp['employee_id'] }}</td>
+                <td style="font-size:0.78rem; color:var(--text-secondary);">{{ emp['email'] }}</td>
                 <td>
-                    <span style="padding:3px 10px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; font-size:0.72rem; font-weight:600; color:var(--text-secondary);">
+                    <span style="padding:3px 10px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; font-size:0.7rem; font-weight:600; color:var(--text-secondary);">
                         {{ emp['department'] }}
                     </span>
                 </td>
@@ -49,10 +63,10 @@
                     {% endif %}
                 </td>
                 <td>
-                    <form method="POST" action="{{ url_for('manage_employees') }}" style="display:inline;" onsubmit="return confirm('Delete this employee? This cannot be undone.');">
+                    <form method="POST" action="{{ url_for('manage_employees') }}" style="display:inline;" onsubmit="return confirm('Delete this employee and all their data? This cannot be undone.');">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="user_id" value="{{ emp['id'] }}">
-                        <button type="submit" style="background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.15); color:var(--accent-rose); padding:4px 10px; border-radius:6px; font-size:0.72rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; font-family:inherit; transition:all 0.2s;">
+                        <button type="submit" class="btn-sm" style="background:rgba(244,63,94,0.06); border-color:rgba(244,63,94,0.12); color:var(--accent-rose);">
                             <i class="fa-solid fa-trash-can"></i> Remove
                         </button>
                     </form>
@@ -60,7 +74,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="6" style="text-align:center; padding:3rem; color:var(--text-muted); font-style:italic;">
+                <td colspan="6" style="text-align:center; padding:3rem; color:var(--text-muted);">
                     <i class="fa-solid fa-users-slash" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.3;"></i>
                     No employees in the system yet.
                 </td>
@@ -69,4 +83,18 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterEmployees() {
+    const query = document.getElementById('empSearch').value.toLowerCase();
+    document.querySelectorAll('.emp-row').forEach(row => {
+        const name = row.dataset.name || '';
+        const dept = row.dataset.dept || '';
+        const id = row.dataset.id || '';
+        row.style.display = (name.includes(query) || dept.includes(query) || id.includes(query)) ? '' : 'none';
+    });
+}
+</script>
 {% endblock %}
