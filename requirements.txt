@@ -1,5 +1,5 @@
 Flask
-opencv-contrib-python
+opencv-contrib-python-headless
 numpy
 pandas
 flask-login
@@ -9,4 +9,4 @@ APScheduler
 cryptography
 gunicorn
 psycopg2-binary
-mediapipe
+mediapipe==0.10.14
