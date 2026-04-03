@@ -853,13 +853,14 @@ def api_recognize_face():
                 "confidence": confidence
             })
 
-    if confidence > 0:
+    # Face was detected and analyzed (anti_spoof ran) but not recognized
+    if confidence > 0 or anti_spoof_score > 0:
         return jsonify({
             "success": False, "recognized": False,
             "face_found": True, "has_eyes": has_eyes,
             "anti_spoof_score": anti_spoof_score,
             "spoof_checks": spoof_checks,
-            "msg": "Identity Unknown"
+            "msg": "Identity Unknown — Please register first"
         })
 
     return jsonify({
