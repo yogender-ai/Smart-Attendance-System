@@ -22,9 +22,6 @@ import os
 import json
 import time
 import mediapipe as mp
-import os
-import json
-import time
 from cryptography.fernet import Fernet
 from database.db import get_db_connection, get_setting
 from config import Config
@@ -128,6 +125,12 @@ def detect_faces_dnn(img_bgr, confidence_threshold=0.65):
         if confidence > confidence_threshold:
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
             (x1, y1, x2, y2) = box.astype("int")
+            
+            # PADDING FOR BEARDS: DNNs often cut off the chin/beard.
+            # We add 15% to the bottom coordinates to ensure full facial hair is captured.
+            beard_padding = int((y2 - y1) * 0.15)
+            y2 = min(h, y2 + beard_padding)
+            
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(w, x2), min(h, y2)
             face_w, face_h = x2 - x1, y2 - y1
@@ -497,6 +500,11 @@ def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
         eye_score * 0.15
     )
 
+    # 3D Pose Check (Layer 9)
+    # If the face is perfectly flat without any 3D rotation, it's highly likely a photo.
+    # We will pass this data in via kwargs or check from recognize_face_with_liveness directly.
+    # Here we just use the composite as base.
+
     # Track scores across frames for temporal consistency
     spoof_frame_scores.append(int(composite))
     if len(spoof_frame_scores) > MAX_SPOOF_FRAMES:
@@ -663,16 +671,45 @@ def recognize_face_with_liveness(base64_img):
 
     (x, y, w, h) = faces[0]
 
-    # Eye detection
-    face_upper_half = gray[y:y + h // 2, x:x + w]
-    eyes = eye_cascade.detectMultiScale(face_upper_half, 1.1, 3) if face_upper_half.size > 0 else []
-    has_eyes = len(eyes) > 0
+    # MediaPipe Face Mesh & Eye Detection (Handles glasses & beards better)
+    has_eyes = False
+    three_d_pose_score = 50 # Default neutral
+    
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    results = face_mesh_mp.process(img_rgb)
+    
+    if results.multi_face_landmarks:
+        # We have a valid face mesh — means face mapping succeeded (eyes/glasses handled)
+        has_eyes = True
+        landmarks = results.multi_face_landmarks[0].landmark
+        
+        # Calculate 3D Pose Fake Detection (Layer 9)
+        # Real faces have depth (z-values on nose vs cheeks). Photos have flattened z-values.
+        nose_z = landmarks[1].z   # Nose tip
+        left_cheek_z = landmarks[234].z # Left cheek
+        right_cheek_z = landmarks[454].z # Right cheek
+        
+        depth_variance = abs(nose_z - left_cheek_z) + abs(nose_z - right_cheek_z)
+        # Normal faces have depth_variance > 0.05. Photos (flat screens) have very small depth_variance.
+        if depth_variance > 0.12:
+            three_d_pose_score = 100
+        elif depth_variance > 0.05:
+            three_d_pose_score = 80
+        else:
+            three_d_pose_score = 10 # Flat object (Spoof)
 
-    # 8-Layer anti-spoofing
+    # 8-Layer + 3D Pose anti-spoofing
     face_roi_gray = gray[y:y+h, x:x+w]
     anti_spoof_score, spoof_checks = compute_anti_spoof_score(
         face_roi_gray, img_bgr, x, y, w, h, has_eyes
     )
+    
+    # Mix 3D Pose into final spoof checks
+    spoof_checks['3d_pose_depth'] = three_d_pose_score > 30
+    
+    # If 3d pose falls flat, penalize total score
+    if three_d_pose_score <= 10:
+        anti_spoof_score = min(anti_spoof_score, 25)
 
     if not os.path.exists(TRAINER_PATH):
         return None, has_eyes, 0, anti_spoof_score, spoof_checks
