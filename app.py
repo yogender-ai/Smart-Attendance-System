@@ -900,6 +900,49 @@ def api_edit_attendance():
     return jsonify({"success": True, "msg": "Attendance updated."})
 
 
+@app.route("/api/system_status")
+def api_system_status():
+    """System health check for admin dashboard."""
+    status = {}
+
+    # Camera (always 'Available' on server — actual check is client-side)
+    status['camera'] = {'status': 'Available', 'detail': 'Browser webcam access'}
+
+    # AI Engine
+    try:
+        from utils.face_utils import get_face_detector, TRAINER_PATH
+        net = get_face_detector()
+        face_files = [f for f in os.listdir('face_data') if f.endswith('.enc') or (f.startswith('face_') and f.endswith('.jpg'))]
+        trainer_exists = os.path.exists(TRAINER_PATH)
+        ai_detail = f"DNN {'active' if net else 'fallback'}, {len(face_files)} faces enrolled"
+        if not trainer_exists:
+            status['ai'] = {'status': 'Ready', 'detail': ai_detail + ' — no model trained yet'}
+        else:
+            status['ai'] = {'status': 'Active', 'detail': ai_detail}
+    except Exception as e:
+        status['ai'] = {'status': 'Error', 'detail': str(e)}
+
+    # Database
+    try:
+        conn = get_db_connection()
+        user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        conn.close()
+        status['database'] = {'status': 'Healthy', 'detail': f'{user_count} users'}
+    except Exception as e:
+        status['database'] = {'status': 'Error', 'detail': str(e)}
+
+    # Email
+    email_enabled = get_setting('email_enabled', '0')
+    hr = get_setting('email_trigger_hour', '18')
+    mn = get_setting('email_trigger_minute', '0')
+    if email_enabled == '1':
+        status['email'] = {'status': 'Enabled', 'detail': f'Auto-trigger: {hr}:{int(mn):02d}'}
+    else:
+        status['email'] = {'status': 'Disabled', 'detail': f'Auto-trigger: {hr}:{int(mn):02d}'}
+
+    return jsonify(status)
+
+
 @app.route("/api/manual_attendance", methods=["POST"])
 def api_manual_attendance():
     if session.get("role") != "admin":
@@ -1039,24 +1082,6 @@ def api_attendance_feed():
     conn.close()
     return jsonify({"feed": feed})
 
-
-@app.route("/api/system_status")
-def api_system_status():
-    db_exists = os.path.exists(Config.DATABASE_URI) if not Config.USE_POSTGRES else True
-
-    conn = get_db_connection()
-    total_faces = conn.execute("SELECT COUNT(*) FROM users WHERE face_registered = 1").fetchone()[0]
-    total_users = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'employee'").fetchone()[0]
-    conn.close()
-
-    email_status = "Enabled" if get_setting('email_enabled', '0') == '1' else "Disabled"
-
-    return jsonify({
-        "camera": {"status": "Online", "detail": "All cameras operational"},
-        "ai": {"status": "Active", "detail": f"8-Layer Anti-Spoof • {total_faces}/{total_users} faces enrolled"},
-        "database": {"status": "Healthy" if db_exists else "Error", "detail": f"Last sync: {datetime.now().strftime('%I:%M %p')}"},
-        "email": {"status": email_status, "detail": f"Auto-trigger: {get_setting('email_trigger_hour', '18')}:{get_setting('email_trigger_minute', '0').zfill(2)}"}
-    })
 
 
 @app.route("/api/upload_photo", methods=["POST"])
