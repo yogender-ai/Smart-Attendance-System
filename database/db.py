@@ -229,13 +229,12 @@ def _insert_defaults_pg(conn):
     """Insert default admin and settings for PostgreSQL."""
     from werkzeug.security import generate_password_hash
 
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM users WHERE role = 'admin'")
-    if not cur.fetchone():
+    result = conn.execute("SELECT id FROM users WHERE role = 'admin'").fetchone()
+    if not result:
         default_admin_pw = generate_password_hash("Admin@123")
-        cur.execute('''
+        conn.execute('''
             INSERT INTO users (employee_id, name, email, phone, department, password_hash, role, face_registered)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', ('ADMIN001', 'Super Admin', 'admin@sofzenix.com', '0000000000', 'Management', default_admin_pw, 'admin', 0))
 
     defaults = {
@@ -250,52 +249,26 @@ def _insert_defaults_pg(conn):
         'hr_email': '',
     }
     for key, value in defaults.items():
-        cur.execute("INSERT INTO settings (key, value) VALUES (%s, %s) ON CONFLICT (key) DO NOTHING", (key, value))
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO NOTHING", (key, value))
 
 
 def execute_query(conn, query, params=None):
-    """Execute a query with auto-detection of placeholder style."""
-    if Config.USE_POSTGRES and params:
-        # Convert ? placeholders to %s for PostgreSQL
-        query = query.replace('?', '%s')
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    return cur
+    """Execute a query. The connection wrapper handles placeholder conversion."""
+    return conn.execute(query, params) if params else conn.execute(query)
 
 
 def fetchone(conn, query, params=None):
     """Fetch one row, returning dict-like object."""
-    if Config.USE_POSTGRES:
-        if params:
-            query = query.replace('?', '%s')
-        cur = conn.cursor()
-        cur.execute(query, params or ())
-        row = cur.fetchone()
-        if row:
-            return PostgresRowWrapper(cur, row)
-        return None
-    else:
-        if params:
-            return conn.execute(query, params).fetchone()
-        return conn.execute(query).fetchone()
+    if params:
+        return conn.execute(query, params).fetchone()
+    return conn.execute(query).fetchone()
 
 
 def fetchall(conn, query, params=None):
     """Fetch all rows, returning list of dict-like objects."""
-    if Config.USE_POSTGRES:
-        if params:
-            query = query.replace('?', '%s')
-        cur = conn.cursor()
-        cur.execute(query, params or ())
-        rows = cur.fetchall()
-        return [PostgresRowWrapper(cur, row) for row in rows]
-    else:
-        if params:
-            return conn.execute(query, params).fetchall()
-        return conn.execute(query).fetchall()
+    if params:
+        return conn.execute(query, params).fetchall()
+    return conn.execute(query).fetchall()
 
 
 def get_setting(key, default=None):
