@@ -731,9 +731,9 @@ def recognize_face_with_liveness(base64_img):
         landmarks = results.multi_face_landmarks[0].landmark
         
         # Calculate Liveness Metrics (Blinks and Smiles)
-        ear = calculate_ear(landmarks, w, h)
-        is_smiling = detect_smile(landmarks, w, h)
-        liveness_metrics["eyes_closed"] = ear < 0.22 # Typical threshold for closed eyes
+        ear = float(calculate_ear(landmarks, w, h))
+        is_smiling = bool(detect_smile(landmarks, w, h))
+        liveness_metrics["eyes_closed"] = bool(ear < 0.22) # Typical threshold for closed eyes
         liveness_metrics["smiling"] = is_smiling
         
         # Calculate 3D Pose Fake Detection (Layer 9)

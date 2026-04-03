@@ -860,7 +860,7 @@ def api_recognize_face():
     if confidence > 0 or anti_spoof_score > 0:
         return jsonify({
             "success": False, "recognized": False,
-            "face_found": True, "has_eyes": has_eyes,
+            "face_found": True, "liveness_metrics": liveness_metrics,
             "anti_spoof_score": anti_spoof_score,
             "spoof_checks": spoof_checks,
             "msg": "Identity Unknown — Please register first"
