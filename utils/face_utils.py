@@ -805,7 +805,7 @@ def recognize_face_with_liveness(base64_img):
         # Calculate Liveness Metrics (Blinks and Smiles)
         ear = float(calculate_ear(landmarks, w, h))
         is_smiling = bool(detect_smile(landmarks, w, h))
-        liveness_metrics["eyes_closed"] = bool(ear < 0.25) # Raised for glasses wearers (lens refraction)
+        liveness_metrics["eyes_closed"] = bool(ear < 0.28) # Super-lenient for thick spectacles and lens glare
         liveness_metrics["smiling"] = is_smiling
         liveness_metrics["ear"] = round(ear, 3)  # Include raw EAR for debug
         
