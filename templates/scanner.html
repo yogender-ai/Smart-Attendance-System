@@ -259,9 +259,9 @@
         const spoofVal = document.getElementById("spoofVal");
 
         let isProc = false;
-        let challenge = null; // 'blink' or 'smile'
-        let challengePassed = false;
-        let actionDetected = false; 
+        let eyeWasClosed = false;
+        let blinkDetected = false;
+        const blinkCounter = document.getElementById('blinkCounter');
 
         function updateMeters(conf, spoof) {
             meterRow.style.display = 'flex';
@@ -273,8 +273,8 @@
             spoofVal.innerText = spoof;
             spoofFill.className = 'meter-fill ' + (spoof > 50 ? 'green' : spoof > 25 ? 'yellow' : 'red');
             
-            blinkCounter.innerText = challengePassed ? "PASS" : "WAITING";
-            blinkCounter.style.color = challengePassed ? '#10b981' : '#f59e0b';
+            blinkCounter.innerText = blinkDetected ? "✓ PASS" : "BLINK";
+            blinkCounter.style.color = blinkDetected ? '#10b981' : '#f59e0b';
         }
 
         function setCamStatus(title, desc, state) {
@@ -301,12 +301,12 @@
             if(!isProc && vid.readyState === 4) {
                 isProc = true;
                 const b64 = captureFrame("scanVideo");
-                if(!b64) { isProc = false; setTimeout(engine, 600); return; }
+                if(!b64) { isProc = false; setTimeout(engine, 400); return; }
 
                 try {
                     const req = await fetch("{{ url_for('api_recognize_face') }}", {
                         method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({image:b64, liveness_verified: challengePassed})
+                        body: JSON.stringify({image:b64, liveness_verified: blinkDetected})
                     });
                     const res = await req.json();
 
@@ -317,25 +317,36 @@
                     if (res.multi_face) {
                         setCamStatus("Multiple Faces", "Only one person at a time please", "alert");
                     } else if(res.spoofing_detected) {
-                        setCamStatus("⚠️ Spoof Detected", res.msg || "Live presence required. Remove phone/screen.", "alert");
-                        challenge = null; challengePassed = false; actionDetected = false;
+                        setCamStatus("⚠️ Spoof Detected", res.msg || "Live presence required.", "alert");
+                        eyeWasClosed = false; blinkDetected = false;
                     } else if(res.recognized) {
                         
-                        // We are now utilizing Passive Zero-Click Liveness (Texture/Moire/Depth).
-                        // If we reached here, the Python API validated the spoof_checks successfully.
+                        // Single-blink liveness detection using MediaPipe EAR
+                        let metrics = res.liveness_metrics || {};
                         
-                        // UI Visualizer Update
-                        meterRow.children[2].children[0].innerText = "Liveness";
-                        blinkCounter.innerText = "PASS";
-                        blinkCounter.style.color = '#10b981';
+                        if (!blinkDetected) {
+                            // Track eye close→open transition = 1 blink
+                            if (metrics.eyes_closed && !eyeWasClosed) {
+                                eyeWasClosed = true;
+                            } else if (!metrics.eyes_closed && eyeWasClosed) {
+                                blinkDetected = true;
+                                eyeWasClosed = false;
+                            }
+                        }
 
-                        if(res.success) {
+                        if (!blinkDetected) {
+                            setCamStatus(
+                                `<i class="fa-solid fa-fingerprint"></i> ${res.user}`,
+                                `<span style="color:#10b981; font-weight:700;">Blink once to verify identity</span>`,
+                                "scanning"
+                            );
+                        } else if(res.success) {
                             let initials = res.user.substring(0, 2).toUpperCase();
                             let avatar = `<div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981, #06b6d4); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800; color:#fff; border:3px solid #fff; box-shadow:0 0 25px rgba(16,185,129,0.6); margin:0 auto 10px;">${initials}</div>`;
                             setCamStatus(avatar + `<div>Access Granted</div>`, `<span style='color:#34d399; font-weight:700; font-size:1.05rem;'>${res.msg}</span>`, "success");
                             
                             setTimeout(() => {
-                                challenge = null; challengePassed = false; actionDetected = false; isProc = false;
+                                eyeWasClosed = false; blinkDetected = false; isProc = false;
                                 setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
                                 setTimeout(engine, 500);
                             }, 3500);
@@ -343,7 +354,7 @@
                         }
                     } else if(res.recognized === false && res.msg !== "Waiting for valid subject...") {
                         setCamStatus("Identity Unknown", "⚠️ Please <a href='{{ url_for('login') }}' style='color:#10b981; font-weight:bold;'>Register</a> first.", "unregistered");
-                        challenge = null; challengePassed = false; actionDetected = false;
+                        eyeWasClosed = false; blinkDetected = false;
                         setTimeout(() => {
                             isProc = false;
                             setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
@@ -352,12 +363,12 @@
                         return;
                     } else {
                         setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
-                        challenge = null; challengePassed = false; actionDetected = false;
+                        eyeWasClosed = false; blinkDetected = false;
                     }
                 } catch(e) { console.error(e); }
                 isProc = false;
             }
-            setTimeout(engine, 400);
+            setTimeout(engine, 300);
         }
         
         setTimeout(() => {

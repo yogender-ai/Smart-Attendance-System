@@ -506,11 +506,82 @@ def check_face_size_consistency(x, y, w, h):
     return movement_score + size_score + jitter_score
 
 
+def detect_screen_border(img_bgr, x, y, w, h):
+    """
+    Layer 10: Detect rectangular screen borders (phone/tablet edges) around the face.
+    Real faces do NOT have sharp rectangular edges surrounding them.
+    Phone screens always have visible bezels or uniform colored borders.
+    Returns 0-100: 100 = no screen detected, 0 = screen frame detected.
+    """
+    img_h, img_w = img_bgr.shape[:2]
+    
+    # Expand search area beyond the face bounding box
+    pad_x = int(w * 0.6)
+    pad_y = int(h * 0.4)
+    rx1 = max(0, x - pad_x)
+    ry1 = max(0, y - pad_y)
+    rx2 = min(img_w, x + w + pad_x)
+    ry2 = min(img_h, y + h + pad_y)
+    
+    region = img_bgr[ry1:ry2, rx1:rx2]
+    if region.size == 0:
+        return 70
+    
+    gray_region = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+    
+    # Detect strong straight edges (phone bezels are straight lines)
+    edges = cv2.Canny(gray_region, 80, 200)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50, minLineLength=40, maxLineGap=10)
+    
+    if lines is None:
+        return 90  # No straight lines = likely real face
+    
+    vertical_lines = 0
+    horizontal_lines = 0
+    
+    for line in lines:
+        lx1, ly1, lx2, ly2 = line[0]
+        angle = abs(np.degrees(np.arctan2(ly2 - ly1, lx2 - lx1 + 1e-6)))
+        length = np.sqrt((lx2 - lx1)**2 + (ly2 - ly1)**2)
+        
+        if length > 30:
+            if angle < 15 or angle > 165:  # Horizontal
+                horizontal_lines += 1
+            elif 75 < angle < 105:  # Vertical
+                vertical_lines += 1
+    
+    # Phone screens have at least 2 vertical + 2 horizontal strong edges
+    if vertical_lines >= 2 and horizontal_lines >= 2:
+        return 5  # Phone border detected!
+    elif vertical_lines >= 1 and horizontal_lines >= 1:
+        return 30
+    
+    # Check for uniform dark border (phone bezel)
+    top_strip = gray_region[0:max(1, gray_region.shape[0]//10), :]
+    bottom_strip = gray_region[max(0, gray_region.shape[0]*9//10):, :]
+    left_strip = gray_region[:, 0:max(1, gray_region.shape[1]//10)]
+    right_strip = gray_region[:, max(0, gray_region.shape[1]*9//10):]
+    
+    border_stds = [
+        np.std(top_strip) if top_strip.size > 0 else 50,
+        np.std(bottom_strip) if bottom_strip.size > 0 else 50,
+        np.std(left_strip) if left_strip.size > 0 else 50,
+        np.std(right_strip) if right_strip.size > 0 else 50
+    ]
+    
+    # Phone bezels have very low std dev (uniform color)
+    uniform_borders = sum(1 for s in border_stds if s < 15)
+    if uniform_borders >= 3:
+        return 10  # Uniform borders = screen bezel
+    
+    return 80
+
+
 def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
     """
-    8-Layer composite anti-spoofing score.
+    10-Layer composite anti-spoofing score.
     Each layer detects a different aspect of screen/photo spoofing.
-    All 8 must pass for high confidence of liveness.
+    All layers must pass for high confidence of liveness.
     """
     global spoof_frame_scores
 
@@ -522,6 +593,7 @@ def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
     frequency_score = analyze_frequency_domain(face_roi_gray)
     consistency_score = check_face_size_consistency(x, y, w, h)
     eye_score = 100 if has_eyes else 0
+    screen_border_score = detect_screen_border(img_bgr, x, y, w, h)
 
     checks = {
         "texture": texture_score > 35,
@@ -531,25 +603,22 @@ def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
         "glare_detect": glare_score > 50,
         "frequency": frequency_score > 40,
         "face_consistency": consistency_score > 20,
-        "eye_presence": has_eyes
+        "eye_presence": has_eyes,
+        "screen_border": screen_border_score > 25
     }
 
-    # Weighted composite
+    # Weighted composite (rebalanced with screen detection)
     composite = (
-        texture_score * 0.12 +
-        edge_score * 0.10 +
-        color_score * 0.15 +
-        moire_score * 0.15 +
-        glare_score * 0.13 +
-        frequency_score * 0.10 +
-        consistency_score * 0.10 +
-        eye_score * 0.15
+        texture_score * 0.10 +
+        edge_score * 0.08 +
+        color_score * 0.12 +
+        moire_score * 0.12 +
+        glare_score * 0.10 +
+        frequency_score * 0.08 +
+        consistency_score * 0.08 +
+        eye_score * 0.12 +
+        screen_border_score * 0.20
     )
-
-    # 3D Pose Check (Layer 9)
-    # If the face is perfectly flat without any 3D rotation, it's highly likely a photo.
-    # We will pass this data in via kwargs or check from recognize_face_with_liveness directly.
-    # Here we just use the composite as base.
 
     # Track scores across frames for temporal consistency
     spoof_frame_scores.append(int(composite))
@@ -559,16 +628,19 @@ def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
     # If we have enough frames, use average (smooths out noise)
     if len(spoof_frame_scores) >= 3:
         avg_score = int(np.mean(spoof_frame_scores))
-        # If consistently low across frames — definite spoof
-        if avg_score < 35:
+        if avg_score < 40:
             composite = min(composite, avg_score)
 
     # Count how many checks failed
     failed_checks = sum(1 for v in checks.values() if not v)
 
-    # If 4+ checks fail simultaneously → almost certainly a spoof
-    if failed_checks >= 4:
+    # If 3+ checks fail → almost certainly a spoof (lowered from 4)
+    if failed_checks >= 3:
         composite = min(composite, 20)
+    
+    # Screen border is a hard kill — if phone detected, cap score
+    if screen_border_score <= 10:
+        composite = min(composite, 15)
 
     return int(composite), checks
 
@@ -733,8 +805,9 @@ def recognize_face_with_liveness(base64_img):
         # Calculate Liveness Metrics (Blinks and Smiles)
         ear = float(calculate_ear(landmarks, w, h))
         is_smiling = bool(detect_smile(landmarks, w, h))
-        liveness_metrics["eyes_closed"] = bool(ear < 0.22) # Typical threshold for closed eyes
+        liveness_metrics["eyes_closed"] = bool(ear < 0.25) # Raised for glasses wearers (lens refraction)
         liveness_metrics["smiling"] = is_smiling
+        liveness_metrics["ear"] = round(ear, 3)  # Include raw EAR for debug
         
         # Calculate 3D Pose Fake Detection (Layer 9)
         # Real faces have depth (z-values on nose vs cheeks). Photos have flattened z-values.
