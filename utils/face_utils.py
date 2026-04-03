@@ -21,6 +21,10 @@ import base64
 import os
 import json
 import time
+import mediapipe as mp
+import os
+import json
+import time
 from cryptography.fernet import Fernet
 from database.db import get_db_connection, get_setting
 from config import Config
@@ -80,8 +84,17 @@ recognizer = cv2.face.LBPHFaceRecognizer_create(radius=1, neighbors=8, grid_x=8,
 if os.path.exists(TRAINER_PATH):
     recognizer.read(TRAINER_PATH)
 
-# --- Haar Cascades ---
-eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye_tree_eyeglasses.xml")
+# --- Multi-Layer Anti-Spoofing & Liveness Models ---
+# Initialize MediaPipe Face Mesh for 468-point 3D landmarking (handles glasses and beards flawlessly)
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh_mp = mp_face_mesh.FaceMesh(
+    static_image_mode=True,
+    max_num_faces=1,
+    refine_landmarks=True,
+    min_detection_confidence=0.5
+)
+
+# Legacy fallbacks
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
 # --- Anti-Spoofing State ---

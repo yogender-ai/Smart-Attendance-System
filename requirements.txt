@@ -9,3 +9,4 @@ APScheduler
 cryptography
 gunicorn
 psycopg2-binary
+mediapipe
