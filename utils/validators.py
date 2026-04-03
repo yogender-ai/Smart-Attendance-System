@@ -86,6 +86,7 @@ def validate_email(email):
     - Lowercase conversion
     - No spaces
     - Max 100 chars
+    - DNS MX record check (verifies domain can receive mail)
     """
     if not email or not email.strip():
         return None, "Email is required."
@@ -103,6 +104,24 @@ def validate_email(email):
     # No consecutive dots
     if '..' in email:
         return None, "Email cannot contain consecutive dots."
+
+    # DNS MX Record Check — verify the domain actually has mail servers
+    domain = email.split('@')[1]
+    try:
+        import dns.resolver
+        mx_records = dns.resolver.resolve(domain, 'MX')
+        if not mx_records:
+            return None, f"The domain '{domain}' cannot receive emails. Please use a real email."
+    except ImportError:
+        # dnspython not installed — fallback to socket check
+        import socket
+        try:
+            socket.getaddrinfo(domain, 25, socket.AF_INET)
+        except socket.gaierror:
+            return None, f"The domain '{domain}' does not exist. Please use a real email."
+    except Exception:
+        # DNS lookup failed — domain likely doesn't exist
+        return None, f"Could not verify '{domain}'. Please use a valid email provider (Gmail, Outlook, etc)."
 
     return email, None
 
