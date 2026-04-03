@@ -235,6 +235,10 @@
                 <div class="meter-bar"><div class="meter-fill green" id="spoofFill" style="width:0%;"></div></div>
                 <span id="spoofVal">0</span>
             </div>
+            <div class="meter">
+                <span>Blinks</span>
+                <span id="blinkCounter" style="color:#10b981; font-weight:700;">0/2</span>
+            </div>
         </div>
     </div>
 
@@ -254,7 +258,9 @@
         const spoofFill = document.getElementById("spoofFill");
         const spoofVal = document.getElementById("spoofVal");
 
-        let isProc = false, blink = false, eyesClosed = false;
+        let isProc = false, blinkCount = 0, eyesClosed = false;
+        const REQUIRED_BLINKS = 2;
+        const blinkCounter = document.getElementById('blinkCounter');
 
         function updateMeters(conf, spoof) {
             meterRow.style.display = 'flex';
@@ -265,6 +271,9 @@
             spoofFill.style.width = spoof + '%';
             spoofVal.innerText = spoof;
             spoofFill.className = 'meter-fill ' + (spoof > 50 ? 'green' : spoof > 25 ? 'yellow' : 'red');
+            
+            blinkCounter.innerText = Math.min(blinkCount, REQUIRED_BLINKS) + '/' + REQUIRED_BLINKS;
+            blinkCounter.style.color = blinkCount >= REQUIRED_BLINKS ? '#10b981' : '#f59e0b';
         }
 
         function setCamStatus(title, desc, state) {
@@ -294,9 +303,10 @@
                 if(!b64) { isProc = false; setTimeout(engine, 600); return; }
 
                 try {
+                    const livenessVerified = blinkCount >= REQUIRED_BLINKS;
                     const req = await fetch("{{ url_for('api_recognize_face') }}", {
                         method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({image:b64, liveness_verified:blink})
+                        body: JSON.stringify({image:b64, liveness_verified:livenessVerified})
                     });
                     const res = await req.json();
 
@@ -308,19 +318,30 @@
                         setCamStatus("Multiple Faces", "Only one person at a time please", "alert");
                     } else if(res.spoofing_detected) {
                         setCamStatus("⚠️ Spoof Detected", "Live presence required. Remove phone/screen.", "alert");
+                        blinkCount = 0;
+                        eyesClosed = false;
                     } else if(res.recognized) {
-                        if(!res.has_eyes) { eyesClosed = true; } 
-                        if(eyesClosed && res.has_eyes) { blink = true; }
+                        // Double-blink detection
+                        if(!res.has_eyes && !eyesClosed) {
+                            eyesClosed = true;
+                        } else if(eyesClosed && res.has_eyes) {
+                            blinkCount++;
+                            eyesClosed = false;
+                        }
 
-                        if(!blink) {
-                            setCamStatus(`<i class="fa-solid fa-fingerprint"></i> ${res.user}`, `Confidence: ${res.confidence}%. Blink to verify.`, "scanning");
+                        if(blinkCount < REQUIRED_BLINKS) {
+                            setCamStatus(
+                                `<i class="fa-solid fa-fingerprint"></i> ${res.user}`,
+                                `Blink ${blinkCount}/${REQUIRED_BLINKS} — ${blinkCount === 0 ? 'Blink to verify identity' : 'Blink again to confirm'}`,
+                                "scanning"
+                            );
                         } else if(res.success) {
                             let initials = res.user.substring(0, 2).toUpperCase();
                             let avatar = `<div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981, #06b6d4); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800; color:#fff; border:3px solid #fff; box-shadow:0 0 25px rgba(16,185,129,0.6); margin:0 auto 10px;">${initials}</div>`;
                             setCamStatus(avatar + `<div>Access Granted</div>`, `<span style='color:#34d399; font-weight:700; font-size:1.05rem;'>Welcome back, ${res.user}</span>`, "success");
                             
                             setTimeout(() => {
-                                blink = false; eyesClosed = false; isProc = false;
+                                blinkCount = 0; eyesClosed = false; isProc = false;
                                 setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
                                 setTimeout(engine, 500);
                             }, 4000);
@@ -328,6 +349,7 @@
                         }
                     } else if(res.recognized === false && res.msg !== "Waiting for valid subject...") {
                         setCamStatus("Identity Unknown", "⚠️ Please <a href='{{ url_for('login') }}' style='color:#10b981; font-weight:bold;'>Register</a> first.", "unregistered");
+                        blinkCount = 0; eyesClosed = false;
                         setTimeout(() => {
                             isProc = false;
                             setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
@@ -336,6 +358,7 @@
                         return;
                     } else {
                         setCamStatus("Awaiting Subject", "Please look directly at the camera", "normal");
+                        blinkCount = 0; eyesClosed = false;
                     }
                 } catch(e) { console.error(e); }
                 isProc = false;

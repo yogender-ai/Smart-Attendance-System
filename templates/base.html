@@ -65,6 +65,9 @@
                 <a href="{{ url_for('employee_dashboard') }}" class="{% if request.endpoint == 'employee_dashboard' %}active{% endif %}">
                     <i class="fa-solid fa-gauge-high"></i> Dashboard
                 </a>
+                <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}">
+                    <i class="fa-solid fa-user-pen"></i> My Profile
+                </a>
                 <a href="{{ url_for('scanner') }}">
                     <i class="fa-solid fa-camera"></i> Scan Face
                 </a>
@@ -74,7 +77,11 @@
             <div style="flex:1;"></div>
 
             <div class="sidebar-profile">
+                {% if session.get('profile_photo') %}
+                <img src="{{ url_for('static', filename='uploads/profiles/' + session.get('profile_photo')) }}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0; border:2px solid rgba(16,185,129,0.2);">
+                {% else %}
                 <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
+                {% endif %}
                 <div class="profile-info">
                     <div class="profile-name">{{ session.get('name') }}</div>
                     <div class="profile-role">{% if session.get('role') == 'admin' %}Administrator{% else %}Employee{% endif %}</div>
@@ -104,7 +111,11 @@
                 <div class="topbar-right">
                     <div class="topbar-clock" id="liveClock">--:--:--</div>
                     <div class="topbar-user">
+                        {% if session.get('profile_photo') %}
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + session.get('profile_photo')) }}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+                        {% else %}
                         <div class="avatar">{{ session.get('name', 'U')[0:2] | upper }}</div>
+                        {% endif %}
                         <div class="topbar-user-info">
                             <div class="topbar-user-name">{{ session.get('name') }}</div>
                             <div class="topbar-user-role">{% if session.get('role') == 'admin' %}Admin{% else %}Employee{% endif %}</div>

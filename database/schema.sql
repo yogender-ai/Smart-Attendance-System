@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     employee_id TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -7,14 +7,15 @@ CREATE TABLE IF NOT EXISTS users (
     department TEXT,
     password_hash TEXT NOT NULL,
     role TEXT DEFAULT 'employee' CHECK(role IN ('admin', 'employee')),
-    face_encoding BLOB,
+    profile_photo TEXT,
+    face_encoding BYTEA,
     face_encodings TEXT,
     face_registered INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS attendance (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     date TEXT NOT NULL,
     time TEXT NOT NULL,

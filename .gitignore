@@ -1,13 +1,24 @@
 venv/
 __pycache__/
+*.pyc
 *.sqlite3
 *.db
 .env
+.face_key
+
+# Face data (plain + encrypted + trained model)
+face_data/*.jpg
+face_data/*.enc
+face_data/trainer.yml
+face_data/*.caffemodel
+
+# Profile photo uploads
+static/uploads/profiles/*
+
+# Images (except readme assets)
 *.jpg
 *.jpeg
 *.png
 !static/readme/*.png
 !static/readme/*.jpg
 !static/readme/icons/
-face_data/*.jpg
-face_data/trainer.yml

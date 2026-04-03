@@ -18,9 +18,9 @@
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="empSearch" placeholder="Search employees..." oninput="filterEmployees()">
         </div>
-        <a href="{{ url_for('register') }}" style="background:linear-gradient(135deg, var(--accent-emerald), #059669); color:#fff; font-weight:700; padding:0.45rem 1.15rem; border-radius:10px; text-decoration:none; font-size:0.8rem; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s; box-shadow:0 4px 12px rgba(16,185,129,0.2); white-space:nowrap;">
-            <i class="fa-solid fa-user-plus"></i> Onboard New
-        </a>
+        <button onclick="openAddModal()" style="background:linear-gradient(135deg, var(--accent-emerald), #059669); color:#fff; font-weight:700; padding:0.45rem 1.15rem; border-radius:10px; border:none; font-size:0.8rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(16,185,129,0.2); white-space:nowrap; font-family:inherit;">
+            <i class="fa-solid fa-user-plus"></i> Add Employee
+        </button>
     </div>
 </div>
 
@@ -41,7 +41,11 @@
             <tr class="emp-row" data-name="{{ emp['name']|lower }}" data-dept="{{ emp['department']|lower }}" data-id="{{ emp['employee_id']|lower }}">
                 <td>
                     <div style="display:flex; align-items:center; gap:0.6rem;">
+                        {% if emp['profile_photo'] %}
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + emp['profile_photo']) }}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+                        {% else %}
                         <div class="feed-avatar" style="width:32px; height:32px; font-size:0.62rem;">{{ emp['name'][0:2] | upper }}</div>
+                        {% endif %}
                         <div>
                             <span style="font-weight:600; color:var(--text-primary); font-size:0.82rem;">{{ emp['name'] }}</span>
                             {% if emp['phone'] %}<div style="font-size:0.65rem; color:var(--text-muted);">{{ emp['phone'] }}</div>{% endif %}
@@ -83,6 +87,70 @@
         </tbody>
     </table>
 </div>
+
+<!-- ADD EMPLOYEE MODAL -->
+<div id="addEmpModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:100; align-items:center; justify-content:center;">
+    <div class="glass-card" style="width:90%; max-width:500px;">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-user-plus"></i> Add New Employee</span>
+            <button onclick="closeAddModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="glass-card-body">
+            <form id="addEmpForm" style="display:flex; flex-direction:column; gap:0.75rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">Employee ID</label>
+                        <input type="text" id="addEmpId" class="form-control" required placeholder="EMP001" maxlength="15" style="width:100%; text-transform:uppercase;" oninput="this.value=this.value.replace(/[^A-Za-z0-9\-]/g,'').toUpperCase()">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">Full Name</label>
+                        <input type="text" id="addName" class="form-control" required placeholder="John Doe" maxlength="50" style="width:100%;" oninput="this.value=this.value.replace(/\s{2,}/g,' ')">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">Email</label>
+                    <input type="email" id="addEmail" class="form-control" required placeholder="john@domain.com" maxlength="100" style="width:100%;">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">Phone</label>
+                        <input type="text" id="addPhone" class="form-control" required placeholder="9876543210" maxlength="15" style="width:100%;" oninput="this.value=this.value.replace(/[^\d]/g,'')">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">Department</label>
+                        <select id="addDept" class="form-control" style="width:100%; appearance:none;">
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" style="background:#0d1117;">{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="addResult" style="display:none;"></div>
+
+                <button type="button" class="btn-primary" id="addEmpBtn" onclick="submitAddEmployee()" style="margin-top:0.25rem;">
+                    <i class="fa-solid fa-plus"></i> Create Employee
+                </button>
+            </form>
+
+            <!-- Generated Password Display (shown after success) -->
+            <div id="genPwSection" style="display:none; margin-top:1rem; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15); border-radius:10px; padding:1rem;">
+                <div style="font-size:0.72rem; font-weight:700; color:var(--accent-emerald); margin-bottom:0.5rem;">
+                    <i class="fa-solid fa-circle-check"></i> Employee Created Successfully!
+                </div>
+                <div style="font-size:0.68rem; color:var(--text-secondary); margin-bottom:0.4rem;">
+                    Share this temporary password with the employee. They can change it after login.
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.3); border-radius:8px; padding:0.55rem 0.85rem;">
+                    <code id="genPwValue" style="flex:1; font-size:0.85rem; color:var(--accent-cyan); font-weight:700; letter-spacing:1px;"></code>
+                    <button onclick="copyPassword()" style="background:var(--accent-cyan); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:0.68rem; font-weight:700; cursor:pointer; font-family:inherit;">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -94,6 +162,88 @@ function filterEmployees() {
         const dept = row.dataset.dept || '';
         const id = row.dataset.id || '';
         row.style.display = (name.includes(query) || dept.includes(query) || id.includes(query)) ? '' : 'none';
+    });
+}
+
+function openAddModal() {
+    document.getElementById('addEmpModal').style.display = 'flex';
+    document.getElementById('addResult').style.display = 'none';
+    document.getElementById('genPwSection').style.display = 'none';
+    document.getElementById('addEmpForm').reset();
+}
+
+function closeAddModal() {
+    document.getElementById('addEmpModal').style.display = 'none';
+}
+
+function submitAddEmployee() {
+    const btn = document.getElementById('addEmpBtn');
+    const resultDiv = document.getElementById('addResult');
+
+    const empId = document.getElementById('addEmpId').value.trim();
+    const name = document.getElementById('addName').value.trim();
+    const email = document.getElementById('addEmail').value.trim();
+    const phone = document.getElementById('addPhone').value.trim();
+    const dept = document.getElementById('addDept').value;
+
+    // Client-side checks
+    if (!empId || empId.length < 3) { showAddResult('Employee ID must be at least 3 characters.', false); return; }
+    if (!name || name.length < 2) { showAddResult('Name must be at least 2 characters.', false); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showAddResult('Invalid email format.', false); return; }
+    if (!phone || phone.length < 10) { showAddResult('Phone must be at least 10 digits.', false); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+
+    fetch('/api/admin_add_employee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: empId, name: name, email: email, phone: phone, department: dept })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Employee';
+
+        if (data.success) {
+            showAddResult(data.msg, true);
+            document.getElementById('genPwSection').style.display = 'block';
+            document.getElementById('genPwValue').textContent = data.generated_password;
+            showToast(data.msg, 'success');
+        } else {
+            showAddResult(data.msg, false);
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Employee';
+        showAddResult('Network error. Please try again.', false);
+    });
+}
+
+function showAddResult(msg, isSuccess) {
+    const el = document.getElementById('addResult');
+    el.style.display = 'block';
+    el.style.padding = '0.5rem 0.75rem';
+    el.style.borderRadius = '8px';
+    el.style.fontSize = '0.76rem';
+    el.style.fontWeight = '600';
+    if (isSuccess) {
+        el.style.background = 'rgba(16,185,129,0.08)';
+        el.style.border = '1px solid rgba(16,185,129,0.2)';
+        el.style.color = '#10b981';
+    } else {
+        el.style.background = 'rgba(244,63,94,0.08)';
+        el.style.border = '1px solid rgba(244,63,94,0.2)';
+        el.style.color = '#f43f5e';
+    }
+    el.textContent = msg;
+}
+
+function copyPassword() {
+    const pw = document.getElementById('genPwValue').textContent;
+    navigator.clipboard.writeText(pw).then(() => {
+        showToast('Password copied to clipboard!', 'success');
     });
 }
 </script>

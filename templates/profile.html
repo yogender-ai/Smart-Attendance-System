@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}My Profile - Smart Attendance AI{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_subtitle %}Manage your personal information{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.85rem;">
+    <!-- Profile Card -->
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <span class="glass-card-title"><i class="fa-solid fa-id-card"></i> Identity Card</span>
+        </div>
+        <div class="glass-card-body" style="text-align:center; padding:2rem 1.5rem;">
+            <!-- Profile Photo -->
+            <div style="position:relative; display:inline-block; margin-bottom:1.25rem;">
+                {% if user['profile_photo'] %}
+                <img src="{{ url_for('static', filename='uploads/profiles/' + user['profile_photo']) }}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid rgba(16,185,129,0.2); box-shadow:0 0 20px rgba(16,185,129,0.15);">
+                {% else %}
+                <div style="width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.6rem; color:#fff; border:3px solid rgba(16,185,129,0.2); box-shadow:0 0 20px rgba(16,185,129,0.15); margin:0 auto;">
+                    {{ user['name'][0:2] | upper }}
+                </div>
+                {% endif %}
+                <form method="POST" enctype="multipart/form-data" id="photoForm" style="position:absolute; bottom:-5px; right:-5px;">
+                    <input type="hidden" name="action" value="upload_photo">
+                    <label style="width:28px; height:28px; border-radius:50%; background:var(--accent-emerald); display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid var(--bg-dark); box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-camera" style="font-size:0.6rem; color:#fff;"></i>
+                        <input type="file" name="photo" accept=".jpg,.jpeg,.png" style="display:none;" onchange="document.getElementById('photoForm').submit();">
+                    </label>
+                </form>
+            </div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--text-primary); margin-bottom:2px;">{{ user['name'] }}</div>
+            <div style="font-size:0.75rem; color:var(--accent-cyan); font-family:monospace; font-weight:600; margin-bottom:4px;">{{ user['employee_id'] }}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">{{ user['department'] }}</div>
+
+            <div style="margin-top:1.25rem; display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                    <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Email</div>
+                    <div style="font-size:0.72rem; color:var(--text-primary); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ user['email'] }}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                    <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Phone</div>
+                    <div style="font-size:0.72rem; color:var(--text-primary); font-weight:500;">{{ user['phone'] }}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                    <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Biometrics</div>
+                    <div style="font-size:0.72rem; font-weight:600;">
+                        {% if user['face_registered'] %}
+                        <span style="color:var(--accent-emerald);"><i class="fa-solid fa-circle-check"></i> Enrolled</span>
+                        {% else %}
+                        <span style="color:var(--accent-gold);"><i class="fa-solid fa-triangle-exclamation"></i> Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                    <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Joined</div>
+                    <div style="font-size:0.72rem; color:var(--text-primary); font-weight:500;">{{ user['created_at'][:10] if user['created_at'] else 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Form -->
+    <div style="display:flex; flex-direction:column; gap:0.85rem;">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <span class="glass-card-title"><i class="fa-solid fa-pen-to-square"></i> Edit Information</span>
+            </div>
+            <div class="glass-card-body">
+                <form method="POST" style="display:flex; flex-direction:column; gap:0.8rem;">
+                    <input type="hidden" name="action" value="update_info">
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Full Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ user['name'] }}" required minlength="2" maxlength="50" style="width:100%;" oninput="this.value=this.value.replace(/\s{2,}/g,' ')">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Phone</label>
+                        <input type="text" name="phone" class="form-control" value="{{ user['phone'] }}" required minlength="10" maxlength="15" style="width:100%;" oninput="this.value=this.value.replace(/[^\d]/g,'')">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Department</label>
+                        <select name="department" class="form-control" style="width:100%; appearance:none;">
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" {% if user['department'] == dept %}selected{% endif %} style="background:#0d1117;">{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                            <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Employee ID</div>
+                            <div style="font-size:0.72rem; color:var(--text-secondary); font-family:monospace;">{{ user['employee_id'] }}</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:0.55rem;">
+                            <div style="font-size:0.58rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Email</div>
+                            <div style="font-size:0.72rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ user['email'] }}</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding:0.65rem;">
+                        <i class="fa-solid fa-check"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <span class="glass-card-title"><i class="fa-solid fa-key"></i> Change Password</span>
+            </div>
+            <div class="glass-card-body">
+                <form method="POST" id="pwForm" style="display:flex; flex-direction:column; gap:0.8rem;">
+                    <input type="hidden" name="action" value="change_password">
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Current Password</label>
+                        <input type="password" name="current_password" class="form-control" required style="width:100%;" placeholder="Enter current password">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">New Password</label>
+                        <input type="password" name="new_password" id="newPw" class="form-control" required minlength="8" style="width:100%;" placeholder="Min 8 chars, 1 upper, 1 digit, 1 special">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Confirm New Password</label>
+                        <input type="password" name="confirm_password" id="confirmNewPw" class="form-control" required style="width:100%;" placeholder="Re-enter new password">
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding:0.65rem; background:linear-gradient(135deg, var(--accent-purple), #7c3aed);">
+                        <i class="fa-solid fa-lock"></i> Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('pwForm').addEventListener('submit', function(e) {
+    const np = document.getElementById('newPw').value;
+    const cp = document.getElementById('confirmNewPw').value;
+    if (np !== cp) { e.preventDefault(); alert('New passwords do not match.'); }
+    else if (np.length < 8 || !/[A-Z]/.test(np) || !/[a-z]/.test(np) || !/[0-9]/.test(np)) {
+        e.preventDefault(); alert('Password must be 8+ chars with uppercase, lowercase, and digit.');
+    }
+});
+</script>
+{% endblock %}

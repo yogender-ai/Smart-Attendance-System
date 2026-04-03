@@ -121,13 +121,21 @@
                         <span class="check-icon">🎨</span>
                         <span class="check-label">Color</span>
                     </div>
-                    <div class="spoof-check" id="spoof_freq">
+                    <div class="spoof-check" id="spoof_moire">
                         <span class="check-icon">📡</span>
+                        <span class="check-label">Moiré</span>
+                    </div>
+                    <div class="spoof-check" id="spoof_glare">
+                        <span class="check-icon">💡</span>
+                        <span class="check-label">Glare</span>
+                    </div>
+                    <div class="spoof-check" id="spoof_freq">
+                        <span class="check-icon">📊</span>
                         <span class="check-label">Freq</span>
                     </div>
                     <div class="spoof-check" id="spoof_motion">
                         <span class="check-icon">🏃</span>
-                        <span class="check-label">Motion</span>
+                        <span class="check-label">Depth</span>
                     </div>
                     <div class="spoof-check" id="spoof_eyes">
                         <span class="check-icon">👁️</span>
@@ -488,15 +496,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const recAvatar = document.getElementById("dashRecAvatar");
 
     let isProcessing = false;
-    let blinkDetected = false;
+    let blinkCount = 0;
     let eyesWereClosed = false;
+    const REQUIRED_BLINKS = 2;
 
     function updateSpoofChecks(checks) {
         if (!checks) return;
         const mapping = {
             texture: 'spoof_texture',
             edge_density: 'spoof_edge',
-            color_analysis: 'spoof_color',
+            color_temp: 'spoof_color',
+            moire_detect: 'spoof_moire',
+            glare_detect: 'spoof_glare',
             frequency: 'spoof_freq',
             face_consistency: 'spoof_motion',
             eye_presence: 'spoof_eyes'
@@ -519,7 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setTimeout(() => {
             successOverlay.style.opacity = '0';
-            blinkDetected = false;
+            blinkCount = 0;
             eyesWereClosed = false;
             isProcessing = false;
             recInfo.style.display = 'none';
@@ -532,10 +543,11 @@ document.addEventListener("DOMContentLoaded", () => {
             isProcessing = true;
             const base64Img = captureFrame("dashVideo");
             try {
+                const livenessVerified = blinkCount >= REQUIRED_BLINKS;
                 const response = await fetch("{{ url_for('api_recognize_face') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64Img, liveness_verified: blinkDetected })
+                    body: JSON.stringify({ image: base64Img, liveness_verified: livenessVerified })
                 });
                 const result = await response.json();
 
@@ -546,6 +558,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     statusDesc.innerText = "Live presence required. Score: " + result.anti_spoof_score;
                     statusIcon.innerHTML = '<i class="fa-solid fa-shield-exclamation" style="color:var(--accent-rose);"></i>';
                     recInfo.style.display = 'none';
+                    blinkCount = 0;
+                    eyesWereClosed = false;
                 } else if (result.recognized) {
                     if (result.user) {
                         recInfo.style.display = 'flex';
@@ -554,15 +568,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         recAvatar.innerText = result.user.substring(0, 2).toUpperCase();
                     }
 
-                    if (!blinkDetected) {
+                    // Double-blink detection
+                    if (!result.has_eyes && !eyesWereClosed) {
+                        eyesWereClosed = true;
+                    } else if (eyesWereClosed && result.has_eyes) {
+                        blinkCount++;
+                        eyesWereClosed = false;
+                    }
+
+                    if (blinkCount < REQUIRED_BLINKS) {
                         statusText.innerText = "Liveness Check";
-                        statusDesc.innerText = "Please blink to verify";
+                        statusDesc.innerText = `Blink ${blinkCount}/${REQUIRED_BLINKS} — ${blinkCount === 0 ? 'Please blink to verify' : 'Blink once more'}`;
                         statusIcon.innerHTML = '<i class="fa-solid fa-eye" style="color:var(--accent-gold);"></i>';
-                        if (!result.has_eyes) eyesWereClosed = true;
-                        else if (eyesWereClosed && result.has_eyes) {
-                            blinkDetected = true;
-                            statusDesc.innerText = "Liveness Verified. Unlocking...";
-                        }
                     } else if (result.success) {
                         showSuccess(result.user || "User");
                         setTimeout(() => location.reload(), 4000);
@@ -573,6 +590,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     statusDesc.innerText = "Position your face in the frame";
                     statusIcon.innerHTML = '<i class="fa-solid fa-camera" style="color:var(--text-muted);"></i>';
                     recInfo.style.display = 'none';
+                    blinkCount = 0;
+                    eyesWereClosed = false;
                 }
             } catch (err) { console.error(err); }
             isProcessing = false;

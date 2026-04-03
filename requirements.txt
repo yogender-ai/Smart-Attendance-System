@@ -5,3 +5,7 @@ pandas
 flask-login
 flask-mail
 Pillow
+APScheduler
+cryptography
+gunicorn
+psycopg2-binary
