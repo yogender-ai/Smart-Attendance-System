@@ -778,7 +778,7 @@ def api_recognize_face():
     base64_img = data.get("image")
     liveness_verified = data.get("liveness_verified", False)
 
-    user_id, has_eyes, confidence, anti_spoof_score, spoof_checks = recognize_face_with_liveness(base64_img)
+    user_id, liveness_metrics, confidence, anti_spoof_score, spoof_checks = recognize_face_with_liveness(base64_img)
 
     if spoof_checks.get("multi_face"):
         return jsonify({
@@ -811,11 +811,11 @@ def api_recognize_face():
         if not liveness_verified:
             return jsonify({
                 "success": False, "recognized": True,
-                "has_eyes": has_eyes,
+                "liveness_metrics": liveness_metrics,
                 "anti_spoof_score": anti_spoof_score,
                 "spoof_checks": spoof_checks,
                 "confidence": confidence,
-                "msg": f"Target locked: {user_info['name']}. Please blink to verify liveness.",
+                "msg": f"Target locked: {user_info['name']}. Processing liveness challenge...",
                 "user": user_info['name'],
                 "emp_id": user_info['employee_id'],
                 "department": user_info['department']

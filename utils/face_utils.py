@@ -161,6 +161,52 @@ def augment_face(gray_face, size=(200, 200)):
 
 
 # ============================================================
+#  LIVENESS METRICS (MediaPipe)
+# ============================================================
+
+def euclidean_distance(p1, p2, w, h):
+    return np.sqrt(((p1.x - p2.x) * w)**2 + ((p1.y - p2.y) * h)**2)
+
+def calculate_ear(landmarks, w, h):
+    """Eye Aspect Ratio using 3D mesh points"""
+    # Left eye landmarks
+    # Horizontal: 33, 133
+    # Vertical: 160(top)-144(bottom), 158(top)-153(bottom)
+    l_h = euclidean_distance(landmarks[33], landmarks[133], w, h)
+    l_v1 = euclidean_distance(landmarks[160], landmarks[144], w, h)
+    l_v2 = euclidean_distance(landmarks[158], landmarks[153], w, h)
+    ear_left = (l_v1 + l_v2) / (2.0 * l_h + 1e-6)
+
+    # Right eye landmarks
+    # Horizontal: 362, 263
+    # Vertical: 385(top)-380(bottom), 387(top)-373(bottom)
+    r_h = euclidean_distance(landmarks[362], landmarks[263], w, h)
+    r_v1 = euclidean_distance(landmarks[385], landmarks[380], w, h)
+    r_v2 = euclidean_distance(landmarks[387], landmarks[373], w, h)
+    ear_right = (r_v1 + r_v2) / (2.0 * r_h + 1e-6)
+
+    return (ear_left + ear_right) / 2.0
+
+def calculate_mar(landmarks, w, h):
+    """Mouth Aspect Ratio (Smile Detection)"""
+    # Outer lip horizontal: 61, 291
+    # Inner lip vertical: 13, 14
+    m_h = euclidean_distance(landmarks[61], landmarks[291], w, h)
+    m_v = euclidean_distance(landmarks[13], landmarks[14], w, h)
+    return m_h / (m_v + 1e-6)  # We actually want width over height.
+    # Wait, smile stretches horizontal width and thins vertical. 
+    # Usually MAR is vertical/horizontal. Let's do horizontal distance.
+    # Simply measuring horizontal distance relative to face width is more stable for smile.
+    
+def detect_smile(landmarks, w, h):
+    """Detect if smiling by checking width of mouth relative to jawline width"""
+    mouth_width = euclidean_distance(landmarks[61], landmarks[291], w, h)
+    jaw_width = euclidean_distance(landmarks[234], landmarks[454], w, h)
+    smile_ratio = mouth_width / (jaw_width + 1e-6)
+    return smile_ratio > 0.42 # Threshold for smile
+
+
+# ============================================================
 #  8-LAYER ANTI-SPOOFING ENGINE
 # ============================================================
 
@@ -657,31 +703,38 @@ def register_face(user_id, base64_img):
 def recognize_face_with_liveness(base64_img):
     """
     Enhanced recognition: DNN detection + LBPH matching + 8-layer anti-spoofing.
-    Returns: (user_id, has_eyes, confidence, anti_spoof_score, spoof_checks)
+    Returns: (user_id, liveness_metrics, confidence, anti_spoof_score, spoof_checks)
     """
     img_bgr = data_uri_to_cv2_img(base64_img)
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     faces = detect_faces_dnn(img_bgr)
 
     if len(faces) == 0:
-        return None, False, 0, 0, {}
+        return None, {}, 0, 0, {}
 
     if len(faces) > 1:
-        return None, False, 0, 0, {"multi_face": True}
+        return None, {}, 0, 0, {"multi_face": True}
 
     (x, y, w, h) = faces[0]
 
     # MediaPipe Face Mesh & Eye Detection (Handles glasses & beards better)
     has_eyes = False
     three_d_pose_score = 50 # Default neutral
+    liveness_metrics = {"eyes_closed": False, "smiling": False}
     
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     results = face_mesh_mp.process(img_rgb)
     
     if results.multi_face_landmarks:
-        # We have a valid face mesh — means face mapping succeeded (eyes/glasses handled)
+        # We have a valid face mesh
         has_eyes = True
         landmarks = results.multi_face_landmarks[0].landmark
+        
+        # Calculate Liveness Metrics (Blinks and Smiles)
+        ear = calculate_ear(landmarks, w, h)
+        is_smiling = detect_smile(landmarks, w, h)
+        liveness_metrics["eyes_closed"] = ear < 0.22 # Typical threshold for closed eyes
+        liveness_metrics["smiling"] = is_smiling
         
         # Calculate 3D Pose Fake Detection (Layer 9)
         # Real faces have depth (z-values on nose vs cheeks). Photos have flattened z-values.
@@ -712,7 +765,7 @@ def recognize_face_with_liveness(base64_img):
         anti_spoof_score = min(anti_spoof_score, 25)
 
     if not os.path.exists(TRAINER_PATH):
-        return None, has_eyes, 0, anti_spoof_score, spoof_checks
+        return None, liveness_metrics, 0, anti_spoof_score, spoof_checks
 
     # Normalize
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
@@ -723,12 +776,12 @@ def recognize_face_with_liveness(base64_img):
     try:
         label, distance = recognizer.predict(face_resized)
     except Exception:
-        return None, has_eyes, 0, anti_spoof_score, spoof_checks
+        return None, liveness_metrics, 0, anti_spoof_score, spoof_checks
 
     threshold = 65
     if distance < threshold:
         confidence = max(0, min(100, int((1 - distance / threshold) * 100)))
-        return label, has_eyes, confidence, anti_spoof_score, spoof_checks
+        return label, liveness_metrics, confidence, anti_spoof_score, spoof_checks
 
     rough_confidence = max(0, int((1 - distance / 200) * 50))
-    return None, has_eyes, rough_confidence, anti_spoof_score, spoof_checks
+    return None, liveness_metrics, rough_confidence, anti_spoof_score, spoof_checks
