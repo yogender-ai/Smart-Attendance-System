@@ -458,6 +458,11 @@
 
                         let metrics = res.liveness_metrics || {};
                         
+                        // Automatically bypass blink check on Render free tier
+                        if (metrics.render_bypass) {
+                            blinkDetected = true;
+                        }
+                        
                         if (!blinkDetected) {
                             if (metrics.eyes_closed && !eyeWasClosed) {
                                 eyeWasClosed = true;

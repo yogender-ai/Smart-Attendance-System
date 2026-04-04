@@ -648,58 +648,38 @@ def compute_anti_spoof_score(face_roi_gray, img_bgr, x, y, w, h, has_eyes):
     consistency_score = check_face_size_consistency(x, y, w, h)
     eye_score = 100 if has_eyes else 0
 
-    if IS_RENDER:
-        # Lightweight mode for Render: skip FFT, Moiré, HoughLines (too CPU-heavy)
-        checks = {
-            "texture": texture_score > 30,
-            "edge_density": edge_score > 20,
-            "color_temp": color_score > 25,
-            "face_consistency": consistency_score > 15,
-            "eye_presence": has_eyes,
-        }
+    moire_score = detect_moire_pattern(face_roi_gray)
+    glare_score = detect_screen_glare(img_bgr, x, y, w, h)
+    frequency_score = analyze_frequency_domain(face_roi_gray)
+    screen_border_score = detect_screen_border(img_bgr, x, y, w, h)
 
-        composite = (
-            texture_score * 0.18 +
-            edge_score * 0.14 +
-            color_score * 0.16 +
-            consistency_score * 0.22 +
-            eye_score * 0.30 +
-            (8.0 if has_eyes and consistency_score > 30 else 0)
-        )
-    else:
-        # Full mode: all 10 layers
-        moire_score = detect_moire_pattern(face_roi_gray)
-        glare_score = detect_screen_glare(img_bgr, x, y, w, h)
-        frequency_score = analyze_frequency_domain(face_roi_gray)
-        screen_border_score = detect_screen_border(img_bgr, x, y, w, h)
+    checks = {
+        "texture": texture_score > 30,
+        "edge_density": edge_score > 20,
+        "color_temp": color_score > 25,
+        "moire_detect": moire_score > 40,
+        "glare_detect": glare_score > 40,
+        "frequency": frequency_score > 35,
+        "face_consistency": consistency_score > 15,
+        "eye_presence": has_eyes,
+        "screen_border": screen_border_score > 20
+    }
 
-        checks = {
-            "texture": texture_score > 30,
-            "edge_density": edge_score > 20,
-            "color_temp": color_score > 25,
-            "moire_detect": moire_score > 40,
-            "glare_detect": glare_score > 40,
-            "frequency": frequency_score > 35,
-            "face_consistency": consistency_score > 15,
-            "eye_presence": has_eyes,
-            "screen_border": screen_border_score > 20
-        }
+    composite = (
+        texture_score * 0.10 +
+        edge_score * 0.08 +
+        color_score * 0.10 +
+        moire_score * 0.15 +
+        glare_score * 0.10 +
+        frequency_score * 0.10 +
+        consistency_score * 0.11 +
+        eye_score * 0.10 +
+        screen_border_score * 0.16 +
+        (8.0 if has_eyes and consistency_score > 30 else 0)
+    )
 
-        composite = (
-            texture_score * 0.10 +
-            edge_score * 0.08 +
-            color_score * 0.10 +
-            moire_score * 0.10 +
-            glare_score * 0.08 +
-            frequency_score * 0.08 +
-            consistency_score * 0.14 +
-            eye_score * 0.16 +
-            screen_border_score * 0.10 +
-            (6.0 if has_eyes and consistency_score > 30 else 0)
-        )
-
-        if screen_border_score <= 5:
-            composite = min(composite, 15)
+    if screen_border_score <= 5:
+        composite = min(composite, 15)
 
     # Track scores across frames for temporal consistency
     spoof_frame_scores.append(int(composite))
