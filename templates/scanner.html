@@ -472,15 +472,7 @@
                             }
                         }
 
-                        if (!blinkDetected) {
-                            const confPct = res.confidence || 0;
-                            setCamStatus(
-                                `<i class="fa-solid fa-fingerprint"></i> ${res.user}`,
-                                `<span style="color:#10b981; font-weight:700;">` +
-                                `Confidence: ${confPct}% — Verifying identity...</span>`,
-                                "blink"
-                            );
-                        } else if(res.success) {
+                        if (res.success) {
                             let initials = res.user.substring(0, 2).toUpperCase();
                             let avatar = `<div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981, #06b6d4); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800; color:#fff; border:3px solid #fff; box-shadow:0 0 25px rgba(16,185,129,0.6); margin:0 auto 10px;">${initials}</div>`;
                             setCamStatus(avatar + `<div>Access Granted</div>`, `<span style='color:#34d399; font-weight:700; font-size:1.05rem;'>${res.msg}</span>`, "success");
@@ -492,6 +484,14 @@
                                 setTimeout(engine, 500);
                             }, 3500);
                             return;
+                        } else if (!blinkDetected) {
+                            const confPct = res.confidence || 0;
+                            setCamStatus(
+                                `<i class="fa-solid fa-fingerprint"></i> ${res.user}`,
+                                `<span style="color:#10b981; font-weight:700;">` +
+                                `Confidence: ${confPct}% — Verifying identity...</span>`,
+                                "blink"
+                            );
                         }
                     } else if(res.face_found) {
                         setCamStatus(
