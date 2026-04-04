@@ -366,7 +366,7 @@
             spoofVal.innerText = spoof;
             spoofFill.className = 'meter-fill ' + (spoof > 45 ? 'green' : spoof > 25 ? 'yellow' : 'red');
             
-            blinkCounter.innerText = blinkDetected ? "✓ PASS" : "BLINK";
+            blinkCounter.innerText = blinkDetected ? "✓ LIVE" : "LIVE";
             blinkCounter.style.color = blinkDetected ? '#10b981' : '#f59e0b';
         }
 
@@ -477,7 +477,7 @@
                             setCamStatus(
                                 `<i class="fa-solid fa-fingerprint"></i> ${res.user}`,
                                 `<span style="color:#10b981; font-weight:700;">` +
-                                `Confidence: ${confPct}% — Blink once to verify</span>`,
+                                `Confidence: ${confPct}% — Verifying identity...</span>`,
                                 "blink"
                             );
                         } else if(res.success) {
