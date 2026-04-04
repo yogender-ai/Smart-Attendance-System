@@ -110,7 +110,18 @@ MAX_SPOOF_FRAMES = 8
 def data_uri_to_cv2_img(uri):
     encoded_data = uri.split(',')[1]
     nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
-    return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    # On Render (0.1 CPU): downscale to 320px max for ~4x faster processing
+    # LBPH only needs 200x200 face crop, so this doesn't hurt recognition quality
+    if IS_RENDER and img is not None:
+        h, w = img.shape[:2]
+        max_dim = 320
+        if max(h, w) > max_dim:
+            scale = max_dim / max(h, w)
+            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
+    return img
 
 
 def detect_faces_dnn(img_bgr, confidence_threshold=0.65):
