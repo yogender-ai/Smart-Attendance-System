@@ -753,6 +753,31 @@ def scanner():
     return redirect(url_for('home'))
 
 
+@app.route("/admin/wipe_model", methods=["POST"])
+def admin_wipe_model():
+    if session.get("role") != "admin":
+        return jsonify({"success": False, "msg": "Unauthorized"})
+    
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET face_registered = 0')
+    conn.execute('DELETE FROM attendance')
+    conn.commit()
+    conn.close()
+    
+    from database.db import set_setting
+    set_setting('trainer_yml_b64', '')
+    
+    # Also wipe local file instance so next run fetches or stays empty
+    import shutil
+    import os
+    shutil.rmtree('face_data', ignore_errors=True)
+    os.makedirs('face_data', exist_ok=True)
+    if os.path.exists('models/trainer.yml'):
+        os.remove('models/trainer.yml')
+        
+    return jsonify({"success": True, "msg": "All facial data and models successfully wiped!"})
+
+
 # ============================================================
 #  API ENDPOINTS
 # ============================================================
