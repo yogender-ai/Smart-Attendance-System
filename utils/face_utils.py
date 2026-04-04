@@ -124,11 +124,11 @@ def data_uri_to_cv2_img(uri):
     return img
 
 
-def detect_faces_dnn(img_bgr, confidence_threshold=0.65):
+def detect_faces_dnn(img_bgr, confidence_threshold=0.40):
     net = get_face_detector()
     if net is None:
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(80, 80))
+        faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
         return list(faces)
 
     (h, w) = img_bgr.shape[:2]
@@ -151,7 +151,7 @@ def detect_faces_dnn(img_bgr, confidence_threshold=0.65):
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(w, x2), min(h, y2)
             face_w, face_h = x2 - x1, y2 - y1
-            if face_w > 40 and face_h > 40:
+            if face_w > 20 and face_h > 20:
                 faces.append((x1, y1, face_w, face_h))
     return faces
 
