@@ -82,9 +82,57 @@ def _download_dnn_model():
 
 
 # --- LBPH Recognizer ---
-recognizer = cv2.face.LBPHFaceRecognizer_create(radius=1, neighbors=8, grid_x=8, grid_y=8)
+# Global Configuration
+FACE_DATA_DIR = 'face_data'
+os.makedirs(FACE_DATA_DIR, exist_ok=True)
+TRAINER_PATH = os.path.join(FACE_DATA_DIR, 'trainer.yml')
+
+# Auto-detect Production Environment (Render Neon DB has DATABASE_URL)
+IS_RENDER = bool(os.environ.get('RENDER') or os.environ.get('DATABASE_URL'))
+
+# Models directory setup
+MODELS_DIR = os.path.join(os.path.dirname(__file__), 'models')
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+def sync_trainer_to_db():
+    try:
+        from database.db import set_setting
+        import base64
+        if os.path.exists(TRAINER_PATH):
+            with open(TRAINER_PATH, 'rb') as f:
+                data = f.read()
+            b64_data = base64.b64encode(data).decode('utf-8')
+            set_setting('trainer_yml_b64', b64_data)
+            print("[DB Sync] Saved trainer model to database.")
+    except Exception as e:
+        print(f"[DB Sync] Failed to save trainer to DB: {e}")
+
+def sync_trainer_from_db():
+    try:
+        from database.db import get_setting
+        import base64
+        b64_data = get_setting('trainer_yml_b64', '')
+        if b64_data:
+            data = base64.b64decode(b64_data)
+            os.makedirs(os.path.dirname(TRAINER_PATH), exist_ok=True)
+            with open(TRAINER_PATH, 'wb') as f:
+                f.write(data)
+            recognizer.read(TRAINER_PATH)
+            print("[DB Sync] Loaded trainer model from database.")
+            return True
+    except Exception as e:
+        print(f"[DB Sync] Failed to load trainer from DB: {e}")
+    return False
+
+# Initialize Global LBPH Recognizer
+recognizer = cv2.face.LBPHFaceRecognizer_create()
 if os.path.exists(TRAINER_PATH):
-    recognizer.read(TRAINER_PATH)
+    try:
+        recognizer.read(TRAINER_PATH)
+    except Exception as e:
+        print(f"[Init] Could not load LBPH model: {e}")
+else:
+    sync_trainer_from_db()
 
 # --- Multi-Layer Anti-Spoofing & Liveness Models ---
 # Initialize MediaPipe Face Mesh for 468-point 3D landmarking
@@ -767,11 +815,15 @@ def register_face(user_id, base64_img):
 
     # --- Incremental training: use update() if model exists, train() if first time ---
     if len(new_faces) > 0:
+        if not os.path.exists(TRAINER_PATH):
+            sync_trainer_from_db()
+
         if os.path.exists(TRAINER_PATH):
             try:
                 # Try incremental update first (much faster for 500+ employees)
                 recognizer.update(new_faces, np.array(new_labels))
                 recognizer.save(TRAINER_PATH)
+                sync_trainer_to_db()
                 print(f"[Training] Incremental update for user {user_id} ({len(new_faces)} images)")
             except Exception as e:
                 print(f"[Training] Incremental update failed ({e}), doing full retrain...")
@@ -830,6 +882,7 @@ def _full_retrain(extra_faces=None, extra_labels=None):
     if len(all_faces) > 0:
         recognizer.train(all_faces, np.array(all_labels))
         recognizer.save(TRAINER_PATH)
+        sync_trainer_to_db()
         unique = len(set(all_labels))
         print(f"[Training] Full retrain: {len(all_faces)} images, {unique} users")
 
@@ -905,7 +958,9 @@ def recognize_face_with_liveness(base64_img):
             anti_spoof_score = min(anti_spoof_score, 25)
 
         if not os.path.exists(TRAINER_PATH):
-            return None, liveness_metrics, 0, anti_spoof_score, spoof_checks
+            synced = sync_trainer_from_db()
+            if not synced:
+                return None, liveness_metrics, 0, anti_spoof_score, spoof_checks
 
         # Normalize
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
